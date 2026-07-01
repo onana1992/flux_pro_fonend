@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       user,
       loading,
-      isAdmin: canAccessAdmin(user?.role),
+      isAdmin: canAccessAdmin(user),
       login,
       logout,
       refreshUser,

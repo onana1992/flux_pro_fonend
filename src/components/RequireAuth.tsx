@@ -5,18 +5,20 @@ import { useEffect } from "react";
 import { Flex, Spinner, Text } from "@radix-ui/themes";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/components/AuthProvider";
-import { canReadUsers } from "@/lib/auth-storage";
+import { canReadUsers, hasPermission } from "@/lib/auth-storage";
 
 export function RequireAuth({
   children,
   admin = false,
   userRead = false,
   superAdmin = false,
+  permission,
 }: {
   children: React.ReactNode;
   admin?: boolean;
   userRead?: boolean;
   superAdmin?: boolean;
+  permission?: string;
 }) {
   const { t } = useTranslation();
   const { user, loading, isAdmin } = useAuth();
@@ -32,7 +34,7 @@ export function RequireAuth({
       router.replace("/change-password");
       return;
     }
-    if (superAdmin && user.role !== "SUPER_ADMIN") {
+    if (superAdmin && !hasPermission(user, "LOGIN_AUDIT:READ") && user.role !== "SUPER_ADMIN") {
       router.replace("/dashboard");
       return;
     }
@@ -40,10 +42,14 @@ export function RequireAuth({
       router.replace("/dashboard");
       return;
     }
-    if (userRead && !canReadUsers(user.role)) {
+    if (permission && !hasPermission(user, permission)) {
+      router.replace("/dashboard");
+      return;
+    }
+    if (userRead && !canReadUsers(user)) {
       router.replace("/dashboard");
     }
-  }, [user, loading, admin, userRead, superAdmin, isAdmin, router]);
+  }, [user, loading, admin, userRead, superAdmin, permission, isAdmin, router]);
 
   if (loading && !user) {
     return (
@@ -62,9 +68,10 @@ export function RequireAuth({
   if (user.mustChangePassword && typeof window !== "undefined" && !window.location.pathname.startsWith("/change-password")) {
     return null;
   }
-  if (superAdmin && user.role !== "SUPER_ADMIN") return null;
+  if (superAdmin && !hasPermission(user, "LOGIN_AUDIT:READ") && user.role !== "SUPER_ADMIN") return null;
   if (admin && !isAdmin) return null;
-  if (userRead && !canReadUsers(user.role)) return null;
+  if (permission && !hasPermission(user, permission)) return null;
+  if (userRead && !canReadUsers(user)) return null;
 
   return <>{children}</>;
 }

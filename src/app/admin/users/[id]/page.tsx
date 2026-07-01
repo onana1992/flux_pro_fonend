@@ -3,7 +3,7 @@
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Card, Flex, Table, Text } from "@radix-ui/themes";
+import { Badge, Button, Card, Flex, Select, Table, Text } from "@radix-ui/themes";
 import { useTranslation } from "react-i18next";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -11,13 +11,16 @@ import { useAuth } from "@/components/AuthProvider";
 import {
   ApiError,
   activateUser,
+  assignUserRole,
   deactivateUser,
   getUser,
+  listRoles,
   resetUserPassword,
+  revokeUserRole,
   unlockUser,
 } from "@/lib/api";
-import { isSuperAdmin } from "@/lib/auth-storage";
-import type { User } from "@/lib/types";
+import { hasPermission, isSuperAdmin } from "@/lib/auth-storage";
+import type { Role, User } from "@/lib/types";
 import { LoadingBlock, PageHeader, StatusAlert } from "@/components/ui/shared";
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -36,24 +39,33 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
   const { t } = useTranslation();
   const router = useRouter();
   const { user: currentUser, isAdmin } = useAuth();
-  const superAdmin = isSuperAdmin(currentUser?.role);
+  const superAdmin = isSuperAdmin(currentUser);
 
   const [user, setUser] = useState<User | null>(null);
+  const [allRoles, setAllRoles] = useState<Role[]>([]);
+  const [selectedRoleId, setSelectedRoleId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+
+  const canUpdateUser = currentUser ? hasPermission(currentUser, "USERS:UPDATE") : false;
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      setUser(await getUser(id));
+      const [userData, roles] = await Promise.all([
+        getUser(id),
+        canUpdateUser ? listRoles().catch(() => []) : Promise.resolve([]),
+      ]);
+      setUser(userData);
+      setAllRoles(roles);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("common.errorLoad"));
     } finally {
       setLoading(false);
     }
-  }, [id, t]);
+  }, [id, t, canUpdateUser]);
 
   useEffect(() => {
     load();
@@ -82,6 +94,32 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     await unlockUser(user.id);
     await load();
   }
+
+  async function handleAssignRole() {
+    if (!user || !selectedRoleId) return;
+    setError(null);
+    try {
+      await assignUserRole(user.id, selectedRoleId);
+      setSelectedRoleId("");
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t("common.errorLoad"));
+    }
+  }
+
+  async function handleRevokeRole(roleId: string) {
+    if (!user) return;
+    setError(null);
+    try {
+      await revokeUserRole(user.id, roleId);
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t("common.errorLoad"));
+    }
+  }
+
+  const assignedRoleIds = new Set(user?.roles?.map((r) => r.id) ?? []);
+  const assignableRoles = allRoles.filter((r) => !assignedRoleIds.has(r.id));
 
   return (
     <RequireAuth userRead>
@@ -130,6 +168,53 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                 </Table.Body>
               </Table.Root>
             </Card>
+
+            {canUpdateUser && (
+              <Card size="2">
+                <Flex direction="column" gap="3" p="4">
+                  <Text weight="bold">{t("rbac.userRoles", { defaultValue: "Rôles RBAC" })}</Text>
+                  {user.roles?.length ? (
+                    <Flex gap="2" wrap="wrap">
+                      {user.roles.map((r) => (
+                        <Badge key={r.id} variant="soft" size="2">
+                          {r.name}
+                          <Button
+                            size="1"
+                            variant="ghost"
+                            color="red"
+                            onClick={() => handleRevokeRole(r.id)}
+                            style={{ marginLeft: 4 }}
+                          >
+                            ×
+                          </Button>
+                        </Badge>
+                      ))}
+                    </Flex>
+                  ) : (
+                    <Text size="2" color="gray">
+                      {t("rbac.noRolesAssigned", { defaultValue: "Aucun rôle assigné" })}
+                    </Text>
+                  )}
+                  {assignableRoles.length > 0 && (
+                    <Flex gap="2" align="end" wrap="wrap">
+                      <Select.Root value={selectedRoleId} onValueChange={setSelectedRoleId}>
+                        <Select.Trigger placeholder={t("rbac.selectRole", { defaultValue: "Choisir un rôle" })} />
+                        <Select.Content>
+                          {assignableRoles.map((r) => (
+                            <Select.Item key={r.id} value={r.id}>
+                              {r.name}
+                            </Select.Item>
+                          ))}
+                        </Select.Content>
+                      </Select.Root>
+                      <Button onClick={handleAssignRole} disabled={!selectedRoleId}>
+                        {t("rbac.assignRole", { defaultValue: "Assigner" })}
+                      </Button>
+                    </Flex>
+                  )}
+                </Flex>
+              </Card>
+            )}
 
             {(isAdmin || superAdmin) && (
               <Flex gap="2" wrap="wrap">

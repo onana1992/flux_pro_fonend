@@ -33,6 +33,8 @@
     "orgChart": "Org chart",
     "orgTypes": "Entity types",
     "users": "Users",
+    "roles": "Roles",
+    "permissions": "Permissions",
     "loginAudit": "Login audit"
   },
   "header": {
@@ -214,7 +216,9 @@
     },
     "users": {
       "title": "Users",
-      "description": "Pilot agents management — {{count}} account(s).",
+      "description": "User account administration: view, create and manage access.",
+      "entityCount": "{{count}} user(s)",
+      "filteredCount": "{{filtered}} / {{total}} user(s)",
       "importLabel": "Import agents CSV",
       "searchPlaceholder": "Search name, email, ID…",
       "allRoles": "All roles",
@@ -231,7 +235,10 @@
       "deactivateConfirm": "Deactivate this user?",
       "create": "Create",
       "createTitle": "New user",
-      "createDescription": "Create an agent account with a temporary password.",
+      "createDescription": "Create a user account. Leave the password empty for automatic generation.",
+      "provisionalPassword": "Provisional password",
+      "provisionalPasswordPlaceholder": "Leave empty for automatic generation",
+      "provisionalPasswordHint": "At least 8 characters, one uppercase letter, one digit and one special character. The user must change it on first login.",
       "editTitle": "Edit user",
       "editDescription": "Update account information.",
       "edit": "Edit",

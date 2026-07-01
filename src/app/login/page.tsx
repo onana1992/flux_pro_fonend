@@ -56,14 +56,16 @@ export default function LoginPage() {
           <div className="pointer-events-none absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-blue-300/20 blur-2xl" aria-hidden />
 
           <div className="relative z-10">
-            <Image
-              src="/logo-fluxpro.png"
-              alt="FluxPro"
-              width={280}
-              height={240}
-              priority
-              className="mb-8 h-auto w-28 rounded-xl bg-transparent sm:w-32"
-            />
+            <div className="mb-8 inline-flex rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+              <Image
+                src="/logo-fluxpro.png"
+                alt="FluxPro"
+                width={280}
+                height={240}
+                priority
+                className="h-auto w-28 sm:w-32"
+              />
+            </div>
             <h1 className="text-xl font-semibold leading-snug tracking-tight sm:text-2xl">
               {t("login.heroTitle")}
             </h1>

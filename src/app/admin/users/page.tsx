@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Button, Card, Flex, Select, TextField } from "@radix-ui/themes";
+import { Button, Card, Flex, Select, Text, TextField } from "@radix-ui/themes";
 import { MagnifyingGlassIcon, PlusIcon } from "@radix-ui/react-icons";
 import { useTranslation } from "react-i18next";
 import { AppShell } from "@/components/AppShell";
@@ -57,12 +57,15 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [role, setRole] = useState<string>("all");
   const [organizationId, setOrganizationId] = useState<string>("all");
+  const [totalUnfiltered, setTotalUnfiltered] = useState(0);
   const [loading, setLoading] = useState(true);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const flatOrgs = useMemo(() => flattenOrgs(orgs), [orgs]);
-  const superAdmin = isSuperAdmin(user?.role);
+  const superAdmin = isSuperAdmin(user);
+  const hasActiveFilters =
+    search.trim() !== "" || role !== "all" || organizationId !== "all";
 
   useEffect(() => {
     getOrganizationTree()
@@ -84,12 +87,15 @@ export default function AdminUsersPage() {
       setUsers(res.content);
       setTotalPages(res.totalPages);
       setTotalElements(res.totalElements);
+      if (!hasActiveFilters) {
+        setTotalUnfiltered(res.totalElements);
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("common.errorLoad"));
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, role, organizationId, t]);
+  }, [page, pageSize, search, role, organizationId, hasActiveFilters, t]);
 
   useEffect(() => {
     load();
@@ -114,7 +120,7 @@ export default function AdminUsersPage() {
       <AppShell>
         <PageHeader
           title={t("admin.users.title")}
-          description={t("admin.users.description", { count: totalElements })}
+          description={t("admin.users.description")}
           actions={
             <Flex gap="2" wrap="wrap">
               {isAdmin && (
@@ -140,6 +146,19 @@ export default function AdminUsersPage() {
             })}
             variant="success"
           />
+        )}
+
+        {!loading && (
+          <Flex justify="end" mb="4">
+            <Text size="2" color="gray">
+              {hasActiveFilters
+                ? t("admin.users.filteredCount", {
+                    filtered: totalElements,
+                    total: totalUnfiltered,
+                  })
+                : t("admin.users.entityCount", { count: totalElements })}
+            </Text>
+          </Flex>
         )}
 
         <Card size="2" mb="4">

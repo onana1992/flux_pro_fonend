@@ -12,6 +12,8 @@ import type {
   User,
   UserProfile,
   UserRole,
+  Role,
+  Permission,
 } from "./types";
 import {
   clearAuth,
@@ -284,6 +286,7 @@ export async function createUser(body: {
   organizationId: string;
   jobTitle?: string;
   active: boolean;
+  temporaryPassword?: string;
 }): Promise<CreateUserResult> {
   return apiFetch<CreateUserResult>("/api/users", {
     method: "POST",
@@ -356,6 +359,104 @@ export async function deactivateUser(id: string): Promise<User> {
   return apiFetch<User>(`/api/users/${id}/deactivate`, {
     method: "PATCH",
   });
+}
+
+export async function listRoles(): Promise<Role[]> {
+  return apiFetch<Role[]>("/api/admin/roles");
+}
+
+export async function getRole(id: string): Promise<Role> {
+  return apiFetch<Role>(`/api/admin/roles/${id}`);
+}
+
+export async function createRole(body: {
+  name: string;
+  description?: string;
+  permissionIds?: string[];
+}): Promise<Role> {
+  return apiFetch<Role>("/api/admin/roles", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateRole(
+  id: string,
+  body: { name?: string; description?: string; permissionIds?: string[] },
+): Promise<Role> {
+  return apiFetch<Role>(`/api/admin/roles/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteRole(id: string): Promise<void> {
+  return apiFetch<void>(`/api/admin/roles/${id}`, { method: "DELETE" });
+}
+
+export async function assignRolePermissions(
+  roleId: string,
+  permissionIds: string[],
+): Promise<void> {
+  return apiFetch<void>(`/api/admin/roles/${roleId}/permissions`, {
+    method: "POST",
+    body: JSON.stringify({ permissionIds }),
+  });
+}
+
+export async function revokeRolePermission(roleId: string, permissionId: string): Promise<void> {
+  return apiFetch<void>(`/api/admin/roles/${roleId}/permissions/${permissionId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function assignUserRole(userId: string, roleId: string): Promise<void> {
+  return apiFetch<void>(`/api/users/${userId}/roles`, {
+    method: "POST",
+    body: JSON.stringify({ roleId }),
+  });
+}
+
+export async function revokeUserRole(userId: string, roleId: string): Promise<void> {
+  return apiFetch<void>(`/api/users/${userId}/roles/${roleId}`, { method: "DELETE" });
+}
+
+export async function searchPermissions(params: {
+  page?: number;
+  size?: number;
+  resource?: string;
+}): Promise<PageResponse<Permission>> {
+  const q = new URLSearchParams();
+  q.set("page", String(params.page ?? 0));
+  q.set("size", String(params.size ?? 50));
+  if (params.resource) q.set("resource", params.resource);
+  return apiFetch<PageResponse<Permission>>(`/api/admin/permissions?${q}`);
+}
+
+export async function createPermission(body: {
+  name: string;
+  resource: string;
+  action: string;
+  description?: string;
+}): Promise<Permission> {
+  return apiFetch<Permission>("/api/admin/permissions", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updatePermission(
+  id: string,
+  body: { name?: string; resource?: string; action?: string; description?: string },
+): Promise<Permission> {
+  return apiFetch<Permission>(`/api/admin/permissions/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deletePermission(id: string): Promise<void> {
+  return apiFetch<void>(`/api/admin/permissions/${id}`, { method: "DELETE" });
 }
 
 export async function checkOrganizationAccess(id: string): Promise<OrganizationDetail> {

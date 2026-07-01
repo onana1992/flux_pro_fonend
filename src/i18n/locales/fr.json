@@ -33,6 +33,8 @@
     "orgChart": "Organigramme",
     "orgTypes": "Types d'entités",
     "users": "Utilisateurs",
+    "roles": "Rôles",
+    "permissions": "Permissions",
     "loginAudit": "Journal connexions"
   },
   "header": {
@@ -214,7 +216,9 @@
     },
     "users": {
       "title": "Utilisateurs",
-      "description": "Gestion des agents pilotes — {{count}} compte(s).",
+      "description": "Administration des comptes utilisateurs : consultation, création et suivi des accès.",
+      "entityCount": "{{count}} utilisateur(s)",
+      "filteredCount": "{{filtered}} / {{total}} utilisateur(s)",
       "importLabel": "Importer agents CSV",
       "searchPlaceholder": "Rechercher nom, email, matricule…",
       "allRoles": "Tous les rôles",
@@ -231,7 +235,10 @@
       "deactivateConfirm": "Désactiver cet utilisateur ?",
       "create": "Créer",
       "createTitle": "Nouvel utilisateur",
-      "createDescription": "Créer un compte agent avec mot de passe temporaire.",
+      "createDescription": "Créer un compte utilisateur. Laissez le mot de passe vide pour une génération automatique.",
+      "provisionalPassword": "Mot de passe provisoire",
+      "provisionalPasswordPlaceholder": "Laisser vide pour génération automatique",
+      "provisionalPasswordHint": "8 caractères minimum, une majuscule, un chiffre et un caractère spécial. L'utilisateur devra le changer à la première connexion.",
       "editTitle": "Modifier l'utilisateur",
       "editDescription": "Mettre à jour les informations du compte.",
       "edit": "Modifier",

@@ -61,6 +61,8 @@ export interface UserProfile {
   role: UserRole;
   organization: OrganizationSummary;
   mustChangePassword: boolean;
+  roles: string[];
+  permissions: string[];
 }
 
 export interface TokenResponse {
@@ -91,6 +93,30 @@ export interface User {
   jobTitle?: string;
   active: boolean;
   mustChangePassword: boolean;
+  roles?: RoleSummary[];
+}
+
+export interface RoleSummary {
+  id: string;
+  name: string;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  description?: string;
+  systemRole: boolean;
+  createdAt: string;
+  permissions: Permission[];
+}
+
+export interface Permission {
+  id: string;
+  name: string;
+  resource: string;
+  action: string;
+  description?: string;
+  createdAt: string;
 }
 
 export interface PageResponse<T> {

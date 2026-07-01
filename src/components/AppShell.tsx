@@ -18,6 +18,8 @@ import {
   PersonIcon,
   ReaderIcon,
   SunIcon,
+  LockClosedIcon,
+  IdCardIcon,
 } from "@radix-ui/react-icons";
 import Link from "next/link";
 import Image from "next/image";
@@ -25,7 +27,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "./AuthProvider";
-import { canReadUsers } from "@/lib/auth-storage";
+import { canAccessAdmin, canReadUsers, hasPermission } from "@/lib/auth-storage";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useThemeAppearance } from "./ThemeToggle";
 import { UserProfileMenu } from "./UserProfileMenu";
@@ -37,6 +39,7 @@ interface NavItem {
   admin?: boolean;
   userRead?: boolean;
   superAdmin?: boolean;
+  permission?: string;
   matchPrefix?: string;
 }
 
@@ -73,7 +76,9 @@ const ADMIN_SECTION: NavSection = {
   labelKey: "nav.administration",
   items: [
     { href: "/admin/users", labelKey: "nav.users", icon: <PersonIcon />, userRead: true },
-    { href: "/admin/audit", labelKey: "nav.loginAudit", icon: <ReaderIcon />, superAdmin: true },
+    { href: "/admin/roles", labelKey: "nav.roles", icon: <IdCardIcon />, permission: "ROLES:READ" },
+    { href: "/admin/permissions", labelKey: "nav.permissions", icon: <LockClosedIcon />, permission: "PERMISSIONS:READ" },
+    { href: "/admin/audit", labelKey: "nav.loginAudit", icon: <ReaderIcon />, permission: "LOGIN_AUDIT:READ" },
   ],
 };
 
@@ -171,9 +176,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
 
   function canSeeItem(item: NavItem): boolean {
+    if (item.permission) return hasPermission(user, item.permission);
     if (item.superAdmin) return user?.role === "SUPER_ADMIN";
     if (item.admin) return isAdmin;
-    if (item.userRead) return canReadUsers(user?.role);
+    if (item.userRead) return canReadUsers(user);
     return true;
   }
 

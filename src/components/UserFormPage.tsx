@@ -71,6 +71,7 @@ export function UserFormPage({ userId }: { userId?: string }) {
   const [organizationId, setOrganizationId] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [active, setActive] = useState(true);
+  const [temporaryPassword, setTemporaryPassword] = useState("");
 
   const flatOrgs = useMemo(() => flattenOrgs(orgs), [orgs]);
 
@@ -118,6 +119,7 @@ export function UserFormPage({ userId }: { userId?: string }) {
       organizationId,
       jobTitle: jobTitle || undefined,
       active,
+      ...(temporaryPassword.trim() ? { temporaryPassword: temporaryPassword.trim() } : {}),
     };
     try {
       if (isEdit && userId) {
@@ -229,6 +231,23 @@ export function UserFormPage({ userId }: { userId?: string }) {
                   </Text>
                   <TextField.Root value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
                 </Box>
+                {!isEdit && (
+                  <Box>
+                    <Text size="2" weight="medium" mb="1">
+                      {t("admin.users.provisionalPassword")}
+                    </Text>
+                    <TextField.Root
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder={t("admin.users.provisionalPasswordPlaceholder")}
+                      value={temporaryPassword}
+                      onChange={(e) => setTemporaryPassword(e.target.value)}
+                    />
+                    <Text size="1" color="gray" mt="1" as="p">
+                      {t("admin.users.provisionalPasswordHint")}
+                    </Text>
+                  </Box>
+                )}
                 <Flex align="center" gap="2">
                   <Switch checked={active} onCheckedChange={setActive} />
                   <Text size="2">{t("common.active")}</Text>

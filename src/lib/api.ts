@@ -1,6 +1,8 @@
 import type {
   ImportResult,
   LoginAuditEntry,
+  OrganizationDetail,
+  OrganizationRequest,
   OrganizationSummary,
   OrganizationTreeNode,
   OrganizationType,
@@ -151,6 +153,39 @@ export async function getMe(): Promise<UserProfile> {
 
 export async function getOrganizationTree(): Promise<OrganizationTreeNode[]> {
   return apiFetch<OrganizationTreeNode[]>("/api/organizations/tree");
+}
+
+export async function getOrganization(id: string): Promise<OrganizationDetail> {
+  return apiFetch<OrganizationDetail>(`/api/organizations/${id}`);
+}
+
+export async function createOrganization(body: OrganizationRequest): Promise<OrganizationDetail> {
+  return apiFetch<OrganizationDetail>("/api/organizations", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateOrganization(
+  id: string,
+  body: OrganizationRequest,
+): Promise<OrganizationDetail> {
+  return apiFetch<OrganizationDetail>(`/api/organizations/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deactivateOrganization(id: string): Promise<OrganizationDetail> {
+  return apiFetch<OrganizationDetail>(`/api/organizations/${id}/deactivate`, {
+    method: "PATCH",
+  });
+}
+
+export async function deleteOrganization(id: string): Promise<void> {
+  return apiFetch<void>(`/api/organizations/${id}`, {
+    method: "DELETE",
+  });
 }
 
 export async function getOrganizationTypes(): Promise<OrganizationType[]> {
@@ -323,6 +358,6 @@ export async function deactivateUser(id: string): Promise<User> {
   });
 }
 
-export async function checkOrganizationAccess(id: string): Promise<OrganizationSummary> {
-  return apiFetch<OrganizationSummary>(`/api/organizations/${id}`);
+export async function checkOrganizationAccess(id: string): Promise<OrganizationDetail> {
+  return apiFetch<OrganizationDetail>(`/api/organizations/${id}`);
 }

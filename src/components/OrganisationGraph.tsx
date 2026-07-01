@@ -5,6 +5,7 @@ import {
   Background,
   Controls,
   Handle,
+  MarkerType,
   MiniMap,
   Position,
   ReactFlow,
@@ -16,6 +17,8 @@ import {
 import "@xyflow/react/dist/style.css";
 import { Badge, Box, Flex, Text } from "@radix-ui/themes";
 import { useTranslation } from "react-i18next";
+import { orgTypeColorHex } from "@/lib/org-type-colors";
+import { countOrgNodes } from "@/lib/org-tree";
 import type { OrganisationTreeNode, OrganizationType } from "@/lib/types";
 
 const BADGE_COLORS = new Set(["purple", "blue", "gray", "green", "orange", "red", "yellow"]);
@@ -33,19 +36,6 @@ function badgeColor(type: OrganizationType): "purple" | "blue" | "gray" | "green
   return fallback[type.code] ?? "gray";
 }
 
-const MINIMAP_HEX: Record<string, string> = {
-  purple: "#7c3aed",
-  blue: "#2563eb",
-  gray: "#64748b",
-  green: "#16a34a",
-  orange: "#ea580c",
-};
-
-function minimapColor(type: OrganizationType): string {
-  const color = badgeColor(type);
-  return MINIMAP_HEX[color] ?? "#94a3b8";
-}
-
 type OrgNodeData = {
   label: string;
   code: string;
@@ -55,27 +45,33 @@ type OrgNodeData = {
 
 type OrgFlowNode = Node<OrgNodeData, "org">;
 
-const NODE_WIDTH = 220;
-const NODE_HEIGHT = 88;
-const LEVEL_GAP = 110;
-const SIBLING_GAP = 24;
+const NODE_WIDTH = 260;
+const NODE_HEIGHT = 96;
+const LEVEL_GAP = 100;
+const SIBLING_GAP = 32;
 
 const OrgNode = memo(function OrgNode({ data }: NodeProps<OrgFlowNode>) {
   const { t } = useTranslation();
+  const accent = orgTypeColorHex(data.type.color);
+
   return (
     <>
-      <Handle type="target" position={Position.Left} style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Top} style={{ opacity: 0, width: 8, height: 8 }} />
       <Box
         style={{
           width: NODE_WIDTH,
-          padding: "10px 12px",
-          borderRadius: 8,
+          minHeight: NODE_HEIGHT,
+          padding: "12px 14px",
+          borderRadius: 10,
           border: "1px solid var(--gray-a6)",
-          background: "var(--color-panel-solid)",
-          boxShadow: "var(--shadow-2)",
+          borderLeft: `4px solid ${accent}`,
+          background: data.active ? "var(--color-panel-solid)" : "var(--gray-a2)",
+          boxShadow: "var(--shadow-3)",
+          cursor: "pointer",
+          opacity: data.active ? 1 : 0.82,
         }}
       >
-        <Flex direction="column" gap="1">
+        <Flex direction="column" gap="2">
           <Flex align="center" gap="2" wrap="wrap">
             <Badge color={badgeColor(data.type)} variant="soft" size="1">
               {t(`orgTypes.${data.type.code}`, { defaultValue: data.type.name })}
@@ -86,32 +82,37 @@ const OrgNode = memo(function OrgNode({ data }: NodeProps<OrgFlowNode>) {
               </Badge>
             )}
           </Flex>
-          <Text size="1" color="gray" style={{ fontFamily: "monospace" }}>
+          <Text size="1" color="gray" style={{ fontFamily: "var(--font-geist-mono)" }}>
             {data.code}
           </Text>
-          <Text size="2" weight="medium" style={{ lineHeight: 1.3 }}>
+          <Text size="3" weight="medium" style={{ lineHeight: 1.35 }}>
             {data.label}
           </Text>
         </Flex>
       </Box>
-      <Handle type="source" position={Position.Right} style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Bottom} style={{ opacity: 0, width: 8, height: 8 }} />
     </>
   );
 });
 
 const nodeTypes = { org: OrgNode };
 
+const edgeDefaults = {
+  type: "smoothstep" as const,
+  style: { stroke: "var(--gray-9)", strokeWidth: 2 },
+  markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color: "var(--gray-9)" },
+};
+
 function addEdge(flowEdges: Edge[], parentId: string, childId: string) {
   flowEdges.push({
     id: `${parentId}-${childId}`,
     source: parentId,
     target: childId,
-    type: "smoothstep",
-    style: { stroke: "var(--gray-8)", strokeWidth: 2 },
+    ...edgeDefaults,
   });
 }
 
-function layoutHorizontalTree(nodes: OrganisationTreeNode[]): {
+function layoutVerticalTree(nodes: OrganisationTreeNode[]): {
   flowNodes: OrgFlowNode[];
   flowEdges: Edge[];
 } {
@@ -121,10 +122,10 @@ function layoutHorizontalTree(nodes: OrganisationTreeNode[]): {
   function layoutNode(
     node: OrganisationTreeNode,
     depth: number,
-    startY: number,
+    startX: number,
     parentId?: string,
-  ): { height: number; centerY: number } {
-    const x = depth * (NODE_WIDTH + LEVEL_GAP);
+  ): { width: number; centerX: number } {
+    const y = depth * (NODE_HEIGHT + LEVEL_GAP);
 
     if (node.children.length === 0) {
       flowNodes.push({
@@ -136,26 +137,26 @@ function layoutHorizontalTree(nodes: OrganisationTreeNode[]): {
           type: node.type,
           active: node.active,
         },
-        position: { x, y: startY },
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
+        position: { x: startX, y },
+        sourcePosition: Position.Bottom,
+        targetPosition: Position.Top,
       });
       if (parentId) addEdge(flowEdges, parentId, node.id);
-      return { height: NODE_HEIGHT, centerY: startY + NODE_HEIGHT / 2 };
+      return { width: NODE_WIDTH, centerX: startX + NODE_WIDTH / 2 };
     }
 
-    let cursorY = startY;
+    let cursorX = startX;
     const childResults = node.children.map((child) => {
-      const result = layoutNode(child, depth + 1, cursorY, node.id);
-      cursorY += result.height + SIBLING_GAP;
+      const result = layoutNode(child, depth + 1, cursorX, node.id);
+      cursorX += result.width + SIBLING_GAP;
       return result;
     });
 
-    const totalChildrenHeight = cursorY - startY - SIBLING_GAP;
-    const firstCenter = childResults[0].centerY;
-    const lastCenter = childResults[childResults.length - 1].centerY;
-    const centerY = (firstCenter + lastCenter) / 2;
-    const parentY = centerY - NODE_HEIGHT / 2;
+    const totalChildrenWidth = cursorX - startX - SIBLING_GAP;
+    const firstCenter = childResults[0].centerX;
+    const lastCenter = childResults[childResults.length - 1].centerX;
+    const centerX = (firstCenter + lastCenter) / 2;
+    const parentX = centerX - NODE_WIDTH / 2;
 
     flowNodes.push({
       id: node.id,
@@ -166,34 +167,36 @@ function layoutHorizontalTree(nodes: OrganisationTreeNode[]): {
         type: node.type,
         active: node.active,
       },
-      position: { x, y: parentY },
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
+      position: { x: parentX, y },
+      sourcePosition: Position.Bottom,
+      targetPosition: Position.Top,
     });
     if (parentId) addEdge(flowEdges, parentId, node.id);
 
     return {
-      height: Math.max(NODE_HEIGHT, totalChildrenHeight),
-      centerY,
+      width: Math.max(NODE_WIDTH, totalChildrenWidth),
+      centerX,
     };
   }
 
   let rootOffset = 0;
   nodes.forEach((root, index) => {
     const result = layoutNode(root, 0, rootOffset);
-    rootOffset += result.height + (index < nodes.length - 1 ? SIBLING_GAP * 3 : 0);
+    rootOffset += result.width + (index < nodes.length - 1 ? SIBLING_GAP * 4 : 0);
   });
 
   return { flowNodes, flowEdges };
 }
 
-function countNodes(nodes: OrganisationTreeNode[]): number {
-  return nodes.reduce((total, node) => total + 1 + countNodes(node.children), 0);
-}
-
-function OrganisationGraphInner({ nodes }: { nodes: OrganisationTreeNode[] }) {
+function OrganisationGraphInner({
+  nodes,
+  onNodeClick,
+}: {
+  nodes: OrganisationTreeNode[];
+  onNodeClick?: (nodeId: string) => void;
+}) {
   const { t } = useTranslation();
-  const { flowNodes, flowEdges } = useMemo(() => layoutHorizontalTree(nodes), [nodes]);
+  const { flowNodes, flowEdges } = useMemo(() => layoutVerticalTree(nodes), [nodes]);
 
   if (nodes.length === 0) return null;
 
@@ -201,15 +204,16 @@ function OrganisationGraphInner({ nodes }: { nodes: OrganisationTreeNode[] }) {
     <Box>
       <Text size="2" color="gray" mb="3">
         <Text weight="bold" color="gray" highContrast>
-          {t("common.units", { count: countNodes(nodes) })}
+          {t("common.units", { count: countOrgNodes(nodes) })}
         </Text>{" "}
         — {t("admin.org.graphHint")}
       </Text>
       <Box
+        className="org-graph-canvas"
         style={{
-          height: "calc(100vh - 14rem)",
-          minHeight: 480,
-          borderRadius: 8,
+          height: "calc(100vh - 15rem)",
+          minHeight: 560,
+          borderRadius: 10,
           border: "1px solid var(--gray-a6)",
           background: "var(--gray-2)",
         }}
@@ -219,23 +223,31 @@ function OrganisationGraphInner({ nodes }: { nodes: OrganisationTreeNode[] }) {
           edges={flowEdges}
           nodeTypes={nodeTypes}
           fitView
-          fitViewOptions={{ padding: { top: 40, right: 80, bottom: 40, left: 40 } }}
-          defaultViewport={{ x: 0, y: 0, zoom: 0.85 }}
-          minZoom={0.3}
-          maxZoom={1.5}
+          fitViewOptions={{ padding: 0.2, minZoom: 0.4, maxZoom: 1 }}
+          defaultViewport={{ x: 0, y: 0, zoom: 0.75 }}
+          minZoom={0.25}
+          maxZoom={1.25}
           nodesDraggable={false}
           nodesConnectable={false}
-          elementsSelectable={false}
+          elementsSelectable={Boolean(onNodeClick)}
+          onNodeClick={
+            onNodeClick
+              ? (_event, node) => {
+                  onNodeClick(node.id);
+                }
+              : undefined
+          }
           proOptions={{ hideAttribution: true }}
         >
-          <Background gap={16} size={1} color="var(--gray-6)" />
-          <Controls showInteractive={false} />
+          <Background gap={20} size={1} color="var(--gray-6)" />
+          <Controls showInteractive={false} position="bottom-right" />
           <MiniMap
             nodeColor={(node) => {
               const type = (node.data as OrgNodeData | undefined)?.type;
-              return type ? minimapColor(type) : "#94a3b8";
+              return type ? orgTypeColorHex(type.color) : "#94a3b8";
             }}
             maskColor="rgba(0, 0, 0, 0.08)"
+            position="bottom-left"
           />
         </ReactFlow>
       </Box>
@@ -243,10 +255,16 @@ function OrganisationGraphInner({ nodes }: { nodes: OrganisationTreeNode[] }) {
   );
 }
 
-export function OrganisationGraph({ nodes }: { nodes: OrganisationTreeNode[] }) {
+export function OrganisationGraph({
+  nodes,
+  onNodeClick,
+}: {
+  nodes: OrganisationTreeNode[];
+  onNodeClick?: (nodeId: string) => void;
+}) {
   return (
     <ReactFlowProvider>
-      <OrganisationGraphInner nodes={nodes} />
+      <OrganisationGraphInner nodes={nodes} onNodeClick={onNodeClick} />
     </ReactFlowProvider>
   );
 }

@@ -36,6 +36,23 @@ export interface OrganizationSummary {
   name: string;
 }
 
+export interface OrganizationDetail extends OrganizationSummary {
+  typeId: string;
+  typeCode: string;
+  typeName: string;
+  parentId?: string | null;
+  parentCode?: string | null;
+  active: boolean;
+}
+
+export interface OrganizationRequest {
+  code: string;
+  name: string;
+  typeId: string;
+  parentId?: string | null;
+  active: boolean;
+}
+
 export interface UserProfile {
   id: string;
   email: string;

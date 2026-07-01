@@ -18,6 +18,7 @@ import {
   PersonIcon,
   ReaderIcon,
   SunIcon,
+  LayersIcon,
   LockClosedIcon,
   IdCardIcon,
 } from "@radix-ui/react-icons";
@@ -78,6 +79,7 @@ const ADMIN_SECTION: NavSection = {
     { href: "/admin/users", labelKey: "nav.users", icon: <PersonIcon />, userRead: true },
     { href: "/admin/roles", labelKey: "nav.roles", icon: <IdCardIcon />, permission: "ROLES:READ" },
     { href: "/admin/permissions", labelKey: "nav.permissions", icon: <LockClosedIcon />, permission: "PERMISSIONS:READ" },
+    { href: "/admin/chain-templates", labelKey: "nav.chainTemplates", icon: <LayersIcon />, permission: "CHAIN_TEMPLATES:READ" },
     { href: "/admin/audit", labelKey: "nav.loginAudit", icon: <ReaderIcon />, permission: "LOGIN_AUDIT:READ" },
   ],
 };

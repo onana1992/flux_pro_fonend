@@ -1,4 +1,10 @@
 import type {
+  ChainTemplateCreateRequest,
+  ChainTemplateDetail,
+  ChainTemplateSummary,
+  ChainTemplateUpdateRequest,
+  ChainStepTemplate,
+  DelayUnit,
   ImportResult,
   LoginAuditEntry,
   OrganizationDetail,
@@ -461,4 +467,77 @@ export async function deletePermission(id: string): Promise<void> {
 
 export async function checkOrganizationAccess(id: string): Promise<OrganizationDetail> {
   return apiFetch<OrganizationDetail>(`/api/organizations/${id}`);
+}
+
+export async function searchChainTemplates(params: {
+  page?: number;
+  size?: number;
+  active?: boolean;
+  fileTypeCode?: string;
+  search?: string;
+}): Promise<PageResponse<ChainTemplateSummary>> {
+  const q = new URLSearchParams();
+  q.set("page", String(params.page ?? 0));
+  q.set("size", String(params.size ?? 50));
+  if (params.active !== undefined) q.set("active", String(params.active));
+  if (params.fileTypeCode) q.set("fileTypeCode", params.fileTypeCode);
+  if (params.search) q.set("search", params.search);
+  return apiFetch<PageResponse<ChainTemplateSummary>>(`/api/admin/chain-templates?${q}`);
+}
+
+export async function getChainTemplate(id: string): Promise<ChainTemplateDetail> {
+  return apiFetch<ChainTemplateDetail>(`/api/admin/chain-templates/${id}`);
+}
+
+export async function getChainTemplateByCode(code: string): Promise<ChainTemplateDetail> {
+  return apiFetch<ChainTemplateDetail>(`/api/admin/chain-templates/by-code/${encodeURIComponent(code)}`);
+}
+
+export async function createChainTemplate(body: ChainTemplateCreateRequest): Promise<ChainTemplateDetail> {
+  return apiFetch<ChainTemplateDetail>("/api/admin/chain-templates", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateChainTemplate(
+  id: string,
+  body: ChainTemplateUpdateRequest,
+): Promise<ChainTemplateDetail> {
+  return apiFetch<ChainTemplateDetail>(`/api/admin/chain-templates/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function replaceChainTemplateSteps(
+  id: string,
+  steps: ChainStepTemplate[],
+): Promise<ChainTemplateDetail> {
+  return apiFetch<ChainTemplateDetail>(`/api/admin/chain-templates/${id}/steps`, {
+    method: "PUT",
+    body: JSON.stringify(steps),
+  });
+}
+
+export async function activateChainTemplate(id: string): Promise<ChainTemplateDetail> {
+  return apiFetch<ChainTemplateDetail>(`/api/admin/chain-templates/${id}/activate`, {
+    method: "PATCH",
+  });
+}
+
+export async function deactivateChainTemplate(id: string): Promise<ChainTemplateDetail> {
+  return apiFetch<ChainTemplateDetail>(`/api/admin/chain-templates/${id}/deactivate`, {
+    method: "PATCH",
+  });
+}
+
+export async function deleteChainTemplate(id: string): Promise<void> {
+  return apiFetch<void>(`/api/admin/chain-templates/${id}`, { method: "DELETE" });
+}
+
+export async function duplicateChainTemplate(id: string): Promise<ChainTemplateDetail> {
+  return apiFetch<ChainTemplateDetail>(`/api/admin/chain-templates/${id}/duplicate`, {
+    method: "POST",
+  });
 }

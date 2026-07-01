@@ -158,3 +158,54 @@ export interface OrganizationTypeRequest {
   isRegionalScope: boolean;
   active: boolean;
 }
+
+export type DelayUnit = "WORKING_DAYS" | "WORKING_HOURS";
+
+export interface ChainStepTemplate {
+  id?: string;
+  stepOrder: number;
+  label: string;
+  responsibleRole: UserRole;
+  delayValue: number;
+  delayUnit: DelayUnit;
+  expectedAction?: string;
+  optional: boolean;
+  closureStep: boolean;
+}
+
+export interface ChainTemplateSummary {
+  id: string;
+  code: string;
+  name: string;
+  fileTypeCode?: string | null;
+  totalDelayDays: number;
+  delayUnit: DelayUnit;
+  active: boolean;
+  systemTemplate: boolean;
+  stepCount: number;
+}
+
+export interface ChainTemplateDetail extends ChainTemplateSummary {
+  description?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  steps: ChainStepTemplate[];
+}
+
+export interface ChainTemplateCreateRequest {
+  code: string;
+  name: string;
+  description?: string;
+  fileTypeCode?: string;
+  totalDelayDays: number;
+  delayUnit: DelayUnit;
+  steps: ChainStepTemplate[];
+}
+
+export interface ChainTemplateUpdateRequest {
+  name: string;
+  description?: string;
+  fileTypeCode?: string;
+  totalDelayDays: number;
+  delayUnit: DelayUnit;
+}

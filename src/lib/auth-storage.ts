@@ -78,6 +78,13 @@ function switchPermissionByRole(role: UserProfile["role"], permission: string): 
       );
     case "LOGIN_AUDIT:READ":
       return role === "SUPER_ADMIN";
+    case "CHAIN_TEMPLATES:READ":
+      return true;
+    case "CHAIN_TEMPLATES:CREATE":
+    case "CHAIN_TEMPLATES:UPDATE":
+      return role === "SUPER_ADMIN" || role === "BUSINESS_ADMIN";
+    case "CHAIN_TEMPLATES:DELETE":
+      return role === "SUPER_ADMIN";
     default:
       return false;
   }

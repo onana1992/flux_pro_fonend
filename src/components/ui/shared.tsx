@@ -117,8 +117,8 @@ export function PaginationBar({
 }
 
 export function RoleBadge({ role }: { role: string }) {
-  const superRoles = ["SUPER_ADMIN", "ADMIN_METIER"];
-  const directionRoles = ["DIRECTEUR", "DRTP", "CABINET", "SG"];
+  const superRoles = ["SUPER_ADMIN", "BUSINESS_ADMIN"];
+  const directionRoles = ["DIRECTOR", "REGIONAL_DIRECTOR", "EXECUTIVE_OFFICE", "SECRETARY_GENERAL"];
   let color: "purple" | "blue" | "green" | "gray" = "gray";
   if (superRoles.includes(role)) color = "purple";
   else if (directionRoles.includes(role)) color = "blue";

@@ -59,13 +59,13 @@ export function UserProfileMenu({ user, onLogout }: UserProfileMenuProps) {
         >
           <Avatar
             size="2"
-            fallback={`${user.prenom[0]}${user.nom[0]}`}
+            fallback={`${user.firstName[0]}${user.lastName[0]}`}
             radius="full"
             color="indigo"
           />
           <Box display={{ initial: "none", md: "block" }}>
             <Text size="2" weight="medium">
-              {user.prenom}
+              {user.firstName}
             </Text>
           </Box>
           <ChevronDownIcon width={16} height={16} color="var(--gray-9)" />
@@ -75,7 +75,7 @@ export function UserProfileMenu({ user, onLogout }: UserProfileMenuProps) {
       <DropdownMenu.Content align="end" sideOffset={12} className="user-menu-popup">
         <Box className="user-menu-header">
           <Text as="p" size="2" weight="bold" mb="1" style={{ color: "var(--gray-12)" }}>
-            {user.prenom} {user.nom}
+            {user.firstName} {user.lastName}
           </Text>
           <Text as="p" size="1" style={{ color: "var(--gray-9)" }}>
             {user.email}

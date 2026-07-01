@@ -95,8 +95,8 @@ export default function DashboardPage() {
   ];
 
   const profileRows = [
-    { key: "direction", v: user?.organisation.nom },
-    { key: "orgCode", v: user?.organisation.code },
+    { key: "direction", v: user?.organization.name },
+    { key: "orgCode", v: user?.organization.code },
     {
       key: "password",
       v: user?.mustChangePassword ? t("common.passwordChangeRequired") : t("common.passwordUpToDate"),
@@ -110,7 +110,7 @@ export default function DashboardPage() {
         <div className="dash-welcome">
           <Flex justify="between" align="center" wrap="wrap" gap="3">
             <Box>
-              <h1 className="dash-welcome__title">{t("dashboard.hello", { name: user?.prenom })}</h1>
+              <h1 className="dash-welcome__title">{t("dashboard.hello", { name: user?.firstName })}</h1>
               <p className="dash-welcome__sub">{t("dashboard.overview")}</p>
             </Box>
             <div className="dash-welcome__meta">
@@ -120,7 +120,7 @@ export default function DashboardPage() {
               </span>
               <span className="dash-welcome__pill">
                 <HomeIcon width={14} height={14} />
-                {user?.organisation.code}
+                {user?.organization.code}
               </span>
             </div>
           </Flex>
@@ -132,9 +132,9 @@ export default function DashboardPage() {
               <HomeIcon width={22} height={22} />
             </div>
             <p className="dash-stat__label">{t("dashboard.organisation")}</p>
-            <p className="dash-stat__value">{user?.organisation.code}</p>
+            <p className="dash-stat__value">{user?.organization.code}</p>
             <div className="dash-stat__footer">
-              <Text size="1" color="gray">{user?.organisation.nom}</Text>
+              <Text size="1" color="gray">{user?.organization.name}</Text>
               <span className="dash-trend dash-trend--up">{t("common.active")}</span>
             </div>
           </div>
@@ -242,12 +242,12 @@ export default function DashboardPage() {
               <Flex align="center" gap="4" mb="4">
                 <Avatar
                   size="5"
-                  fallback={`${user?.prenom?.[0] ?? ""}${user?.nom?.[0] ?? ""}`}
+                  fallback={`${user?.firstName?.[0] ?? ""}${user?.lastName?.[0] ?? ""}`}
                   radius="full"
                   color="indigo"
                 />
                 <Box>
-                  <Text size="3" weight="bold">{user?.prenom} {user?.nom}</Text>
+                  <Text size="3" weight="bold">{user?.firstName} {user?.lastName}</Text>
                   <Text size="2" color="gray" as="p" mt="1">{user?.email}</Text>
                   <Box mt="2"><RoleBadge role={user?.role ?? ""} /></Box>
                 </Box>

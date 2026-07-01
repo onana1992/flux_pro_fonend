@@ -1,35 +1,35 @@
 export type UserRole =
   | "SUPER_ADMIN"
-  | "ADMIN_METIER"
-  | "CABINET"
-  | "SG"
-  | "DIRECTEUR"
-  | "CHEF_SERVICE"
+  | "BUSINESS_ADMIN"
+  | "EXECUTIVE_OFFICE"
+  | "SECRETARY_GENERAL"
+  | "DIRECTOR"
+  | "SERVICE_HEAD"
   | "AGENT"
-  | "APPUI"
-  | "LECTEUR"
-  | "DRTP";
+  | "SUPPORT"
+  | "READER"
+  | "REGIONAL_DIRECTOR";
 
-export type OrganisationType =
-  | "MINISTERE"
-  | "DIRECTION"
+export type OrganizationType =
+  | "MINISTRY"
+  | "DIRECTORATE"
   | "DIVISION"
   | "SERVICE"
-  | "DRTP";
+  | "REGIONAL_DIRECTORATE";
 
-export interface OrganisationSummary {
+export interface OrganizationSummary {
   id: string;
   code: string;
-  nom: string;
+  name: string;
 }
 
 export interface UserProfile {
   id: string;
   email: string;
-  nom: string;
-  prenom: string;
+  lastName: string;
+  firstName: string;
   role: UserRole;
-  organisation: OrganisationSummary;
+  organization: OrganizationSummary;
   mustChangePassword: boolean;
 }
 
@@ -40,26 +40,26 @@ export interface TokenResponse {
   user: UserProfile;
 }
 
-export interface OrganisationTreeNode {
+export interface OrganizationTreeNode {
   id: string;
   code: string;
-  nom: string;
-  type: OrganisationType;
-  actif: boolean;
-  children: OrganisationTreeNode[];
+  name: string;
+  type: OrganizationType;
+  active: boolean;
+  children: OrganizationTreeNode[];
 }
 
-export interface Utilisateur {
+export interface User {
   id: string;
-  matricule: string;
+  staffNumber: string;
   email: string;
-  nom: string;
-  prenom: string;
-  telephone?: string;
+  lastName: string;
+  firstName: string;
+  phone?: string;
   role: UserRole;
-  organisation: OrganisationSummary;
-  fonction?: string;
-  actif: boolean;
+  organization: OrganizationSummary;
+  jobTitle?: string;
+  active: boolean;
   mustChangePassword: boolean;
 }
 
@@ -80,9 +80,13 @@ export interface ImportResult {
 export interface LoginAuditEntry {
   id: string;
   email: string;
-  succes: boolean;
+  success: boolean;
   ipAddress?: string;
   userAgent?: string;
-  motifEchec?: string;
+  failureReason?: string;
   createdAt: string;
 }
+
+/** British spelling aliases used by some UI components */
+export type OrganisationType = OrganizationType;
+export type OrganisationTreeNode = OrganizationTreeNode;

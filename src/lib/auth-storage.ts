@@ -42,5 +42,5 @@ export function getStoredUser(): UserProfile | null {
 }
 
 export function canAccessAdmin(role?: string): boolean {
-  return role === "SUPER_ADMIN" || role === "ADMIN_METIER";
+  return role === "SUPER_ADMIN" || role === "BUSINESS_ADMIN";
 }

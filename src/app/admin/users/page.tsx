@@ -18,11 +18,11 @@ import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
 import {
   ApiError,
-  deactivateUtilisateur,
-  importUtilisateurs,
-  searchUtilisateurs,
+  deactivateUser,
+  importUsers,
+  searchUsers,
 } from "@/lib/api";
-import type { ImportResult, Utilisateur, UserRole } from "@/lib/types";
+import type { ImportResult, User, UserRole } from "@/lib/types";
 import {
   EmptyBlock,
   FileImportButton,
@@ -35,20 +35,20 @@ import {
 
 const ROLES: UserRole[] = [
   "SUPER_ADMIN",
-  "ADMIN_METIER",
-  "CABINET",
-  "SG",
-  "DIRECTEUR",
-  "CHEF_SERVICE",
+  "BUSINESS_ADMIN",
+  "EXECUTIVE_OFFICE",
+  "SECRETARY_GENERAL",
+  "DIRECTOR",
+  "SERVICE_HEAD",
   "AGENT",
-  "APPUI",
-  "LECTEUR",
-  "DRTP",
+  "SUPPORT",
+  "READER",
+  "REGIONAL_DIRECTOR",
 ];
 
 export default function AdminUsersPage() {
   const { t } = useTranslation();
-  const [users, setUsers] = useState<Utilisateur[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
@@ -62,7 +62,7 @@ export default function AdminUsersPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await searchUtilisateurs({
+      const res = await searchUsers({
         page,
         search: search || undefined,
         role: role === "all" ? undefined : (role as UserRole),
@@ -85,7 +85,7 @@ export default function AdminUsersPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const result = await importUtilisateurs(file);
+      const result = await importUsers(file);
       setImportResult(result);
       setPage(0);
       await load();
@@ -97,7 +97,7 @@ export default function AdminUsersPage() {
 
   async function handleDeactivate(id: string) {
     if (!confirm(t("admin.users.deactivateConfirm"))) return;
-    await deactivateUtilisateur(id);
+    await deactivateUser(id);
     await load();
   }
 
@@ -184,17 +184,17 @@ export default function AdminUsersPage() {
                     <Table.Row key={u.id}>
                       <Table.Cell>
                         <Text weight="medium">
-                          {u.prenom} {u.nom}
+                          {u.firstName} {u.lastName}
                         </Text>
-                        {u.fonction && (
+                        {u.jobTitle && (
                           <Text size="1" color="gray">
-                            {u.fonction}
+                            {u.jobTitle}
                           </Text>
                         )}
                       </Table.Cell>
                       <Table.Cell>
                         <Text size="1" style={{ fontFamily: "monospace" }}>
-                          {u.matricule}
+                          {u.staffNumber}
                         </Text>
                       </Table.Cell>
                       <Table.Cell>{u.email}</Table.Cell>
@@ -203,16 +203,16 @@ export default function AdminUsersPage() {
                       </Table.Cell>
                       <Table.Cell>
                         <Text size="1" style={{ fontFamily: "monospace" }}>
-                          {u.organisation.code}
+                          {u.organization.code}
                         </Text>
                       </Table.Cell>
                       <Table.Cell>
-                        <Badge color={u.actif ? "green" : "red"} variant="soft">
-                          {u.actif ? t("common.active") : t("common.inactive")}
+                        <Badge color={u.active ? "green" : "red"} variant="soft">
+                          {u.active ? t("common.active") : t("common.inactive")}
                         </Badge>
                       </Table.Cell>
                       <Table.Cell>
-                        {u.actif && (
+                        {u.active && (
                           <Button
                             variant="ghost"
                             color="red"

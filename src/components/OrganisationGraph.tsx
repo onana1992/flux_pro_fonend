@@ -19,26 +19,26 @@ import { useTranslation } from "react-i18next";
 import type { OrganisationTreeNode, OrganisationType } from "@/lib/types";
 
 const TYPE_COLOR: Record<OrganisationType, "purple" | "blue" | "gray" | "green" | "orange"> = {
-  MINISTERE: "purple",
-  DIRECTION: "blue",
+  MINISTRY: "purple",
+  DIRECTORATE: "blue",
   DIVISION: "gray",
   SERVICE: "green",
-  DRTP: "orange",
+  REGIONAL_DIRECTORATE: "orange",
 };
 
 const MINIMAP_COLOR: Record<OrganisationType, string> = {
-  MINISTERE: "#7c3aed",
-  DIRECTION: "#2563eb",
+  MINISTRY: "#7c3aed",
+  DIRECTORATE: "#2563eb",
   DIVISION: "#64748b",
   SERVICE: "#16a34a",
-  DRTP: "#ea580c",
+  REGIONAL_DIRECTORATE: "#ea580c",
 };
 
 type OrgNodeData = {
   label: string;
   code: string;
   type: OrganisationType;
-  actif: boolean;
+  active: boolean;
 };
 
 type OrgFlowNode = Node<OrgNodeData, "org">;
@@ -68,7 +68,7 @@ const OrgNode = memo(function OrgNode({ data }: NodeProps<OrgFlowNode>) {
             <Badge color={TYPE_COLOR[data.type]} variant="soft" size="1">
               {t(`orgTypes.${data.type}`)}
             </Badge>
-            {!data.actif && (
+            {!data.active && (
               <Badge color="red" variant="soft" size="1">
                 {t("common.inactiveOrg")}
               </Badge>
@@ -119,10 +119,10 @@ function layoutHorizontalTree(nodes: OrganisationTreeNode[]): {
         id: node.id,
         type: "org",
         data: {
-          label: node.nom,
+          label: node.name,
           code: node.code,
           type: node.type,
-          actif: node.actif,
+          active: node.active,
         },
         position: { x, y: startY },
         sourcePosition: Position.Right,
@@ -149,10 +149,10 @@ function layoutHorizontalTree(nodes: OrganisationTreeNode[]): {
       id: node.id,
       type: "org",
       data: {
-        label: node.nom,
+        label: node.name,
         code: node.code,
         type: node.type,
-        actif: node.actif,
+        active: node.active,
       },
       position: { x, y: parentY },
       sourcePosition: Position.Right,

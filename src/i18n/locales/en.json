@@ -149,11 +149,11 @@
     "next": "Next"
   },
   "orgTypes": {
-    "MINISTERE": "MINISTRY",
-    "DIRECTION": "DIRECTORATE",
-    "DIVISION": "DIVISION",
-    "SERVICE": "SERVICE",
-    "DRTP": "DRTP"
+    "MINISTRY": "Ministry",
+    "DIRECTORATE": "Directorate",
+    "DIVISION": "Division",
+    "SERVICE": "Service",
+    "REGIONAL_DIRECTORATE": "Regional Directorate"
   },
   "api": {
     "timeout": "The server is taking too long to respond",

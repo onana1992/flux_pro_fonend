@@ -43,8 +43,8 @@ export default function AdminAuditPage() {
       .finally(() => setLoading(false));
   }, [page, t]);
 
-  const successCount = entries.filter((e) => e.succes).length;
-  const failCount = entries.filter((e) => !e.succes).length;
+  const successCount = entries.filter((e) => e.success).length;
+  const failCount = entries.filter((e) => !e.success).length;
 
   return (
     <RequireAuth superAdmin>
@@ -109,8 +109,8 @@ export default function AdminAuditPage() {
                         <Text weight="medium">{e.email}</Text>
                       </Table.Cell>
                       <Table.Cell>
-                        <Badge color={e.succes ? "green" : "red"} variant="soft">
-                          {e.succes ? t("admin.audit.successResult") : t("admin.audit.failResult")}
+                        <Badge color={e.success ? "green" : "red"} variant="soft">
+                          {e.success ? t("admin.audit.successResult") : t("admin.audit.failResult")}
                         </Badge>
                       </Table.Cell>
                       <Table.Cell>
@@ -120,7 +120,7 @@ export default function AdminAuditPage() {
                       </Table.Cell>
                       <Table.Cell>
                         <Text size="1" color="gray">
-                          {e.motifEchec ?? "—"}
+                          {e.failureReason ?? "—"}
                         </Text>
                       </Table.Cell>
                     </Table.Row>

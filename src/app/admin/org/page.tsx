@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { AppShell } from "@/components/AppShell";
 import { OrganisationGraph } from "@/components/OrganisationGraph";
 import { RequireAuth } from "@/components/RequireAuth";
-import { ApiError, getOrganisationTree, importOrganisations } from "@/lib/api";
+import { ApiError, getOrganizationTree, importOrganizations } from "@/lib/api";
 import type { ImportResult, OrganisationTreeNode } from "@/lib/types";
 import {
   EmptyBlock,
@@ -27,7 +27,7 @@ export default function AdminOrgPage() {
     setLoading(true);
     setError(null);
     try {
-      setTree(await getOrganisationTree());
+      setTree(await getOrganizationTree());
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("common.errorLoad"));
     } finally {
@@ -45,7 +45,7 @@ export default function AdminOrgPage() {
     setError(null);
     setImportResult(null);
     try {
-      const result = await importOrganisations(file);
+      const result = await importOrganizations(file);
       setImportResult(result);
       await load();
     } catch (err) {

@@ -1,12 +1,12 @@
 import type {
   ImportResult,
   LoginAuditEntry,
-  OrganisationSummary,
-  OrganisationTreeNode,
+  OrganizationSummary,
+  OrganizationTreeNode,
   PageResponse,
   TokenResponse,
+  User,
   UserProfile,
-  Utilisateur,
   UserRole,
 } from "./types";
 import {
@@ -139,42 +139,42 @@ export async function logout(): Promise<void> {
 }
 
 export async function getMe(): Promise<UserProfile> {
-  return apiFetch<UserProfile>("/api/utilisateurs/me");
+  return apiFetch<UserProfile>("/api/users/me");
 }
 
-export async function getOrganisationTree(): Promise<OrganisationTreeNode[]> {
-  return apiFetch<OrganisationTreeNode[]>("/api/organisations/tree");
+export async function getOrganizationTree(): Promise<OrganizationTreeNode[]> {
+  return apiFetch<OrganizationTreeNode[]>("/api/organizations/tree");
 }
 
-export async function importOrganisations(file: File): Promise<ImportResult> {
+export async function importOrganizations(file: File): Promise<ImportResult> {
   const form = new FormData();
   form.append("file", file);
-  return apiFetch<ImportResult>("/api/organisations/import", {
+  return apiFetch<ImportResult>("/api/organizations/import", {
     method: "POST",
     body: form,
   });
 }
 
-export async function importUtilisateurs(file: File): Promise<ImportResult> {
+export async function importUsers(file: File): Promise<ImportResult> {
   const form = new FormData();
   form.append("file", file);
-  return apiFetch<ImportResult>("/api/utilisateurs/import", {
+  return apiFetch<ImportResult>("/api/users/import", {
     method: "POST",
     body: form,
   });
 }
 
-export async function searchUtilisateurs(params: {
+export async function searchUsers(params: {
   page?: number;
   search?: string;
   role?: UserRole;
-}): Promise<PageResponse<Utilisateur>> {
+}): Promise<PageResponse<User>> {
   const q = new URLSearchParams();
   q.set("page", String(params.page ?? 0));
   q.set("size", "20");
   if (params.search) q.set("search", params.search);
   if (params.role) q.set("role", params.role);
-  return apiFetch<PageResponse<Utilisateur>>(`/api/utilisateurs?${q}`);
+  return apiFetch<PageResponse<User>>(`/api/users?${q}`);
 }
 
 export async function getLoginAudit(page = 0): Promise<PageResponse<LoginAuditEntry>> {
@@ -183,12 +183,12 @@ export async function getLoginAudit(page = 0): Promise<PageResponse<LoginAuditEn
   );
 }
 
-export async function deactivateUtilisateur(id: string): Promise<Utilisateur> {
-  return apiFetch<Utilisateur>(`/api/utilisateurs/${id}/deactivate`, {
+export async function deactivateUser(id: string): Promise<User> {
+  return apiFetch<User>(`/api/users/${id}/deactivate`, {
     method: "PATCH",
   });
 }
 
-export async function checkOrganisationAccess(id: string): Promise<OrganisationSummary> {
-  return apiFetch<OrganisationSummary>(`/api/organisations/${id}`);
+export async function checkOrganizationAccess(id: string): Promise<OrganizationSummary> {
+  return apiFetch<OrganizationSummary>(`/api/organizations/${id}`);
 }

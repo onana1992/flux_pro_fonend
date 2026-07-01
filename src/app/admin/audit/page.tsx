@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Badge, Card, Flex, Table, Text } from "@radix-ui/themes";
+import { useCallback, useEffect, useState } from "react";
+import { Badge, Card, Flex, Select, Table, Text, TextField } from "@radix-ui/themes";
 import { useTranslation } from "react-i18next";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -20,6 +20,10 @@ export default function AdminAuditPage() {
   const [entries, setEntries] = useState<LoginAuditEntry[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [email, setEmail] = useState("");
+  const [success, setSuccess] = useState<string>("all");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,19 +33,29 @@ export default function AdminAuditPage() {
     return new Date(iso).toLocaleString(locale, { timeZone: "Africa/Douala" });
   }
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    getLoginAudit(page)
-      .then((res) => {
-        setEntries(res.content);
-        setTotalPages(res.totalPages);
-      })
-      .catch((err) =>
-        setError(err instanceof ApiError ? err.message : t("common.errorLoad")),
-      )
-      .finally(() => setLoading(false));
-  }, [page, t]);
+    try {
+      const res = await getLoginAudit({
+        page,
+        email: email || undefined,
+        success: success === "all" ? undefined : success === "true",
+        from: from ? new Date(from).toISOString() : undefined,
+        to: to ? new Date(to).toISOString() : undefined,
+      });
+      setEntries(res.content);
+      setTotalPages(res.totalPages);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t("common.errorLoad"));
+    } finally {
+      setLoading(false);
+    }
+  }, [page, email, success, from, to, t]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const successCount = entries.filter((e) => e.success).length;
   const failCount = entries.filter((e) => !e.success).length;
@@ -55,6 +69,50 @@ export default function AdminAuditPage() {
         />
 
         {error && <StatusAlert message={error} variant="error" />}
+
+        <Card size="2" mb="4">
+          <Flex gap="3" wrap="wrap">
+            <TextField.Root
+              placeholder={t("admin.audit.email")}
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setPage(0);
+              }}
+              style={{ minWidth: 200, flex: 1 }}
+            />
+            <Select.Root
+              value={success}
+              onValueChange={(v) => {
+                setSuccess(v);
+                setPage(0);
+              }}
+            >
+              <Select.Trigger style={{ minWidth: 160 }} />
+              <Select.Content>
+                <Select.Item value="all">{t("admin.audit.allResults")}</Select.Item>
+                <Select.Item value="true">{t("admin.audit.successResult")}</Select.Item>
+                <Select.Item value="false">{t("admin.audit.failResult")}</Select.Item>
+              </Select.Content>
+            </Select.Root>
+            <TextField.Root
+              type="datetime-local"
+              value={from}
+              onChange={(e) => {
+                setFrom(e.target.value);
+                setPage(0);
+              }}
+            />
+            <TextField.Root
+              type="datetime-local"
+              value={to}
+              onChange={(e) => {
+                setTo(e.target.value);
+                setPage(0);
+              }}
+            />
+          </Flex>
+        </Card>
 
         {!loading && entries.length > 0 && (
           <Flex gap="3" mb="4" wrap="wrap">

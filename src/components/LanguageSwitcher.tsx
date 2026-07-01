@@ -13,7 +13,7 @@ const LANGUAGES: { code: Locale; name: string; flag: string }[] = [
 
 interface LanguageSwitcherProps {
   collapsed?: boolean;
-  variant?: "sidebar" | "standalone";
+  variant?: "sidebar" | "standalone" | "login";
 }
 
 export function LanguageSwitcher({ collapsed = false, variant = "sidebar" }: LanguageSwitcherProps) {
@@ -28,27 +28,33 @@ export function LanguageSwitcher({ collapsed = false, variant = "sidebar" }: Lan
   }
 
   const isSidebar = variant === "sidebar";
+  const isLogin = variant === "login";
+
+  const triggerClass = isLogin
+    ? "inline-flex w-auto min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-white/25 bg-white/10 px-3 py-1.5 text-sm text-white backdrop-blur-sm transition hover:bg-white/15"
+    : [
+        "lang-picker",
+        isSidebar ? "lang-picker--sidebar" : "lang-picker--standalone",
+        collapsed ? "lang-picker--collapsed" : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
 
   return (
     <DropdownMenu.Root>
-      <DropdownMenu.Trigger
-        className={[
-          "lang-picker",
-          isSidebar ? "lang-picker--sidebar" : "lang-picker--standalone",
-          collapsed ? "lang-picker--collapsed" : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-        aria-label={t("common.selectLanguage")}
-      >
-        <Flex align="center" gap="2" style={{ width: "100%" }}>
-          <span className="lang-picker__flag" aria-hidden>
-            {active.flag}
-          </span>
+      <DropdownMenu.Trigger className={triggerClass} aria-label={t("common.selectLanguage")}>
+        <Flex align="center" gap="2" style={{ width: isLogin ? "auto" : "100%" }}>
+          <span aria-hidden>{active.flag}</span>
           {!collapsed && (
             <>
-              <span className="lang-picker__name">{active.name}</span>
-              <ChevronUpIcon className="lang-picker__chevron" width={16} height={16} />
+              <span className={isLogin ? "text-sm lowercase text-white" : "lang-picker__name"}>
+                {active.name}
+              </span>
+              <ChevronUpIcon
+                className={isLogin ? "text-white/70" : "lang-picker__chevron"}
+                width={16}
+                height={16}
+              />
             </>
           )}
         </Flex>
@@ -57,7 +63,7 @@ export function LanguageSwitcher({ collapsed = false, variant = "sidebar" }: Lan
       <DropdownMenu.Content
         className="lang-picker-popup"
         side={isSidebar ? "top" : "bottom"}
-        align={isSidebar ? "start" : "end"}
+        align={isSidebar ? "start" : isLogin ? "start" : "end"}
         sideOffset={8}
       >
         <div className="lang-picker-popup__title">{t("common.language")}</div>

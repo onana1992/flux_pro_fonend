@@ -1,35 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import {
-  Badge,
-  Box,
-  Button,
-  Card,
-  Flex,
-  Select,
-  Table,
-  Text,
-  TextField,
-} from "@radix-ui/themes";
-import { MagnifyingGlassIcon } from "@radix-ui/react-icons";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Button, Card, Flex, Select, TextField } from "@radix-ui/themes";
+import { MagnifyingGlassIcon, PlusIcon } from "@radix-ui/react-icons";
 import { useTranslation } from "react-i18next";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
-import {
-  ApiError,
-  deactivateUser,
-  importUsers,
-  searchUsers,
-} from "@/lib/api";
-import type { ImportResult, User, UserRole } from "@/lib/types";
+import { UsersTable } from "@/components/UsersTable";
+import { useAuth } from "@/components/AuthProvider";
+import { ApiError, getOrganizationTree, importUsers, searchUsers } from "@/lib/api";
+import { isSuperAdmin } from "@/lib/auth-storage";
+import type { ImportResult, OrganizationTreeNode, User, UserRole } from "@/lib/types";
 import {
   EmptyBlock,
   FileImportButton,
   LoadingBlock,
   PageHeader,
-  PaginationBar,
-  RoleBadge,
   StatusAlert,
 } from "@/components/ui/shared";
 
@@ -46,17 +33,42 @@ const ROLES: UserRole[] = [
   "REGIONAL_DIRECTOR",
 ];
 
+function flattenOrgs(nodes: OrganizationTreeNode[]): OrganizationTreeNode[] {
+  const result: OrganizationTreeNode[] = [];
+  function walk(list: OrganizationTreeNode[]) {
+    for (const node of list) {
+      result.push(node);
+      if (node.children.length > 0) walk(node.children);
+    }
+  }
+  walk(nodes);
+  return result.sort((a, b) => a.code.localeCompare(b.code));
+}
+
 export default function AdminUsersPage() {
   const { t } = useTranslation();
+  const { user, isAdmin } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
+  const [orgs, setOrgs] = useState<OrganizationTreeNode[]>([]);
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [search, setSearch] = useState("");
   const [role, setRole] = useState<string>("all");
+  const [organizationId, setOrganizationId] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const flatOrgs = useMemo(() => flattenOrgs(orgs), [orgs]);
+  const superAdmin = isSuperAdmin(user?.role);
+
+  useEffect(() => {
+    getOrganizationTree()
+      .then(setOrgs)
+      .catch(() => {});
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -64,8 +76,10 @@ export default function AdminUsersPage() {
     try {
       const res = await searchUsers({
         page,
+        size: pageSize,
         search: search || undefined,
         role: role === "all" ? undefined : (role as UserRole),
+        organizationId: organizationId === "all" ? undefined : organizationId,
       });
       setUsers(res.content);
       setTotalPages(res.totalPages);
@@ -75,7 +89,7 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, role, t]);
+  }, [page, pageSize, search, role, organizationId, t]);
 
   useEffect(() => {
     load();
@@ -95,19 +109,26 @@ export default function AdminUsersPage() {
     e.target.value = "";
   }
 
-  async function handleDeactivate(id: string) {
-    if (!confirm(t("admin.users.deactivateConfirm"))) return;
-    await deactivateUser(id);
-    await load();
-  }
-
   return (
-    <RequireAuth admin>
+    <RequireAuth userRead>
       <AppShell>
         <PageHeader
           title={t("admin.users.title")}
           description={t("admin.users.description", { count: totalElements })}
-          actions={<FileImportButton label={t("admin.users.importLabel")} onChange={handleImport} />}
+          actions={
+            <Flex gap="2" wrap="wrap">
+              {isAdmin && (
+                <Button asChild>
+                  <Link href="/admin/users/new">
+                    <PlusIcon /> {t("admin.users.create")}
+                  </Link>
+                </Button>
+              )}
+              {superAdmin && (
+                <FileImportButton label={t("admin.users.importLabel")} onChange={handleImport} />
+              )}
+            </Flex>
+          }
         />
 
         {error && <StatusAlert message={error} variant="error" />}
@@ -123,20 +144,19 @@ export default function AdminUsersPage() {
 
         <Card size="2" mb="4">
           <Flex gap="3" wrap="wrap">
-            <Box style={{ flex: 1, minWidth: 220 }}>
-              <TextField.Root
-                placeholder={t("admin.users.searchPlaceholder")}
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(0);
-                }}
-              >
-                <TextField.Slot>
-                  <MagnifyingGlassIcon height="16" width="16" />
-                </TextField.Slot>
-              </TextField.Root>
-            </Box>
+            <TextField.Root
+              placeholder={t("admin.users.searchPlaceholder")}
+              value={search}
+              style={{ flex: 1, minWidth: 200 }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(0);
+              }}
+            >
+              <TextField.Slot>
+                <MagnifyingGlassIcon height="16" width="16" />
+              </TextField.Slot>
+            </TextField.Root>
             <Select.Root
               value={role}
               onValueChange={(v) => {
@@ -144,7 +164,7 @@ export default function AdminUsersPage() {
                 setPage(0);
               }}
             >
-              <Select.Trigger placeholder={t("admin.users.allRoles")} style={{ minWidth: 180 }} />
+              <Select.Trigger placeholder={t("admin.users.allRoles")} style={{ minWidth: 160 }} />
               <Select.Content>
                 <Select.Item value="all">{t("admin.users.allRoles")}</Select.Item>
                 {ROLES.map((r) => (
@@ -154,83 +174,47 @@ export default function AdminUsersPage() {
                 ))}
               </Select.Content>
             </Select.Root>
+            <Select.Root
+              value={organizationId}
+              onValueChange={(v) => {
+                setOrganizationId(v);
+                setPage(0);
+              }}
+            >
+              <Select.Trigger placeholder={t("admin.users.allOrgs")} style={{ minWidth: 160 }} />
+              <Select.Content>
+                <Select.Item value="all">{t("admin.users.allOrgs")}</Select.Item>
+                {flatOrgs.map((o) => (
+                  <Select.Item key={o.id} value={o.id}>
+                    {o.code}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Root>
           </Flex>
         </Card>
 
-        <Card size="3">
-          {loading ? (
-            <LoadingBlock message={t("admin.users.loading")} />
-          ) : users.length === 0 ? (
-            <EmptyBlock
-              title={t("admin.users.emptyTitle")}
-              description={t("admin.users.emptyDescription")}
-            />
-          ) : (
-            <>
-              <Table.Root variant="surface">
-                <Table.Header>
-                  <Table.Row>
-                    <Table.ColumnHeaderCell>{t("admin.users.agent")}</Table.ColumnHeaderCell>
-                    <Table.ColumnHeaderCell>{t("admin.users.matricule")}</Table.ColumnHeaderCell>
-                    <Table.ColumnHeaderCell>{t("admin.users.email")}</Table.ColumnHeaderCell>
-                    <Table.ColumnHeaderCell>{t("admin.users.role")}</Table.ColumnHeaderCell>
-                    <Table.ColumnHeaderCell>{t("admin.users.organisation")}</Table.ColumnHeaderCell>
-                    <Table.ColumnHeaderCell>{t("admin.users.status")}</Table.ColumnHeaderCell>
-                    <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  {users.map((u) => (
-                    <Table.Row key={u.id}>
-                      <Table.Cell>
-                        <Text weight="medium">
-                          {u.firstName} {u.lastName}
-                        </Text>
-                        {u.jobTitle && (
-                          <Text size="1" color="gray">
-                            {u.jobTitle}
-                          </Text>
-                        )}
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Text size="1" style={{ fontFamily: "monospace" }}>
-                          {u.staffNumber}
-                        </Text>
-                      </Table.Cell>
-                      <Table.Cell>{u.email}</Table.Cell>
-                      <Table.Cell>
-                        <RoleBadge role={u.role} />
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Text size="1" style={{ fontFamily: "monospace" }}>
-                          {u.organization.code}
-                        </Text>
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Badge color={u.active ? "green" : "red"} variant="soft">
-                          {u.active ? t("common.active") : t("common.inactive")}
-                        </Badge>
-                      </Table.Cell>
-                      <Table.Cell>
-                        {u.active && (
-                          <Button
-                            variant="ghost"
-                            color="red"
-                            size="1"
-                            onClick={() => handleDeactivate(u.id)}
-                          >
-                            {t("admin.users.deactivate")}
-                          </Button>
-                        )}
-                      </Table.Cell>
-                    </Table.Row>
-                  ))}
-                </Table.Body>
-              </Table.Root>
-              <PaginationBar page={page} totalPages={totalPages} onPageChange={setPage} />
-            </>
-          )}
-        </Card>
+        {loading ? (
+          <LoadingBlock message={t("admin.users.loading")} />
+        ) : users.length === 0 ? (
+          <EmptyBlock
+            title={t("admin.users.emptyTitle")}
+            description={t("admin.users.emptyDescription")}
+          />
+        ) : (
+          <UsersTable
+            users={users}
+            page={page}
+            totalPages={totalPages}
+            totalElements={totalElements}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(0);
+            }}
+          />
+        )}
       </AppShell>
     </RequireAuth>
   );

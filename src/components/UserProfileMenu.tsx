@@ -58,26 +58,26 @@ export function UserProfileMenu({ user, onLogout }: UserProfileMenuProps) {
           }}
         >
           <Avatar
-            size="2"
+            size="1"
             fallback={`${user.firstName[0]}${user.lastName[0]}`}
             radius="full"
             color="indigo"
           />
           <Box display={{ initial: "none", md: "block" }}>
-            <Text size="2" weight="medium">
+            <Text size="1" weight="medium">
               {user.firstName}
             </Text>
           </Box>
-          <ChevronDownIcon width={16} height={16} color="var(--gray-9)" />
+          <ChevronDownIcon width={14} height={14} color="var(--gray-9)" />
         </Flex>
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Content align="end" sideOffset={12} className="user-menu-popup">
         <Box className="user-menu-header">
-          <Text as="p" size="2" weight="bold" mb="1" style={{ color: "var(--gray-12)" }}>
+          <Text as="p" weight="medium" mb="1" className="user-menu-header__name">
             {user.firstName} {user.lastName}
           </Text>
-          <Text as="p" size="1" style={{ color: "var(--gray-9)" }}>
+          <Text as="p" className="user-menu-header__email">
             {user.email}
           </Text>
         </Box>

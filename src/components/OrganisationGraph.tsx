@@ -16,28 +16,40 @@ import {
 import "@xyflow/react/dist/style.css";
 import { Badge, Box, Flex, Text } from "@radix-ui/themes";
 import { useTranslation } from "react-i18next";
-import type { OrganisationTreeNode, OrganisationType } from "@/lib/types";
+import type { OrganisationTreeNode, OrganizationType } from "@/lib/types";
 
-const TYPE_COLOR: Record<OrganisationType, "purple" | "blue" | "gray" | "green" | "orange"> = {
-  MINISTRY: "purple",
-  DIRECTORATE: "blue",
-  DIVISION: "gray",
-  SERVICE: "green",
-  REGIONAL_DIRECTORATE: "orange",
+const BADGE_COLORS = new Set(["purple", "blue", "gray", "green", "orange", "red", "yellow"]);
+
+function badgeColor(type: OrganizationType): "purple" | "blue" | "gray" | "green" | "orange" {
+  const c = type.color?.toLowerCase();
+  if (c && BADGE_COLORS.has(c)) return c as "purple" | "blue" | "gray" | "green" | "orange";
+  const fallback: Record<string, "purple" | "blue" | "gray" | "green" | "orange"> = {
+    MINISTRY: "purple",
+    DIRECTORATE: "blue",
+    DIVISION: "gray",
+    SERVICE: "green",
+    REGIONAL_DIRECTORATE: "orange",
+  };
+  return fallback[type.code] ?? "gray";
+}
+
+const MINIMAP_HEX: Record<string, string> = {
+  purple: "#7c3aed",
+  blue: "#2563eb",
+  gray: "#64748b",
+  green: "#16a34a",
+  orange: "#ea580c",
 };
 
-const MINIMAP_COLOR: Record<OrganisationType, string> = {
-  MINISTRY: "#7c3aed",
-  DIRECTORATE: "#2563eb",
-  DIVISION: "#64748b",
-  SERVICE: "#16a34a",
-  REGIONAL_DIRECTORATE: "#ea580c",
-};
+function minimapColor(type: OrganizationType): string {
+  const color = badgeColor(type);
+  return MINIMAP_HEX[color] ?? "#94a3b8";
+}
 
 type OrgNodeData = {
   label: string;
   code: string;
-  type: OrganisationType;
+  type: OrganizationType;
   active: boolean;
 };
 
@@ -65,8 +77,8 @@ const OrgNode = memo(function OrgNode({ data }: NodeProps<OrgFlowNode>) {
       >
         <Flex direction="column" gap="1">
           <Flex align="center" gap="2" wrap="wrap">
-            <Badge color={TYPE_COLOR[data.type]} variant="soft" size="1">
-              {t(`orgTypes.${data.type}`)}
+            <Badge color={badgeColor(data.type)} variant="soft" size="1">
+              {t(`orgTypes.${data.type.code}`, { defaultValue: data.type.name })}
             </Badge>
             {!data.active && (
               <Badge color="red" variant="soft" size="1">
@@ -221,7 +233,7 @@ function OrganisationGraphInner({ nodes }: { nodes: OrganisationTreeNode[] }) {
           <MiniMap
             nodeColor={(node) => {
               const type = (node.data as OrgNodeData | undefined)?.type;
-              return type ? MINIMAP_COLOR[type] : "#94a3b8";
+              return type ? minimapColor(type) : "#94a3b8";
             }}
             maskColor="rgba(0, 0, 0, 0.08)"
           />

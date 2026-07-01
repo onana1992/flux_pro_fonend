@@ -19,17 +19,23 @@ export function PageHeader({
   actions,
 }: {
   title: string;
-  description?: string;
+  description?: ReactNode;
   actions?: ReactNode;
 }) {
   return (
     <Flex justify="between" align="start" gap="4" mb="6" wrap="wrap">
       <Box>
         <Heading size="6">{title}</Heading>
-        {description && (
-          <Text size="2" color="gray" mt="1">
-            {description}
-          </Text>
+        {description != null && (
+          <Box mt="1">
+            {typeof description === "string" ? (
+              <Text size="2" color="gray">
+                {description}
+              </Text>
+            ) : (
+              description
+            )}
+          </Box>
         )}
       </Box>
       {actions && (
@@ -87,25 +93,61 @@ export function EmptyBlock({ title, description }: { title: string; description?
 export function PaginationBar({
   page,
   totalPages,
+  totalElements,
+  pageSize = 20,
   onPageChange,
+  onPageSizeChange,
 }: {
   page: number;
   totalPages: number;
+  totalElements?: number;
+  pageSize?: number;
   onPageChange: (p: number) => void;
+  onPageSizeChange?: (size: number) => void;
 }) {
   const { t } = useTranslation();
-  const total = Math.max(totalPages, 1);
+  const from = totalElements === 0 ? 0 : page * pageSize + 1;
+  const to =
+    totalElements != null
+      ? Math.min((page + 1) * pageSize, totalElements)
+      : (page + 1) * pageSize;
+
   return (
-    <Flex justify="between" align="center" pt="4" mt="4" style={{ borderTop: "1px solid var(--gray-a5)" }}>
+    <Flex
+      justify="between"
+      align="center"
+      gap="3"
+      wrap="wrap"
+      pt="4"
+      mt="4"
+      style={{ borderTop: "1px solid var(--gray-a5)" }}
+    >
       <Text size="2" color="gray">
-        {t("pagination.page", { current: page + 1, total })}
+        {totalElements != null
+          ? t("pagination.range", { from, to, total: totalElements })
+          : t("pagination.page", { current: page + 1, total: Math.max(totalPages, 1) })}
       </Text>
-      <Flex gap="2">
-        <Button variant="soft" disabled={page === 0} onClick={() => onPageChange(page - 1)}>
+      <Flex gap="2" align="center">
+        {onPageSizeChange && (
+          <Flex gap="1">
+            {[10, 20, 50].map((size) => (
+              <Button
+                key={size}
+                size="1"
+                variant={pageSize === size ? "solid" : "outline"}
+                onClick={() => onPageSizeChange(size)}
+              >
+                {size}
+              </Button>
+            ))}
+          </Flex>
+        )}
+        <Button variant="soft" size="1" disabled={page === 0} onClick={() => onPageChange(page - 1)}>
           {t("pagination.prev")}
         </Button>
         <Button
           variant="soft"
+          size="1"
           disabled={page + 1 >= totalPages}
           onClick={() => onPageChange(page + 1)}
         >

@@ -3,6 +3,8 @@ import type {
   LoginAuditEntry,
   OrganizationSummary,
   OrganizationTreeNode,
+  OrganizationType,
+  OrganizationTypeRequest,
   PageResponse,
   TokenResponse,
   User,
@@ -104,10 +106,15 @@ export async function apiFetch<T>(
     throw new ApiError(detail, res.status, detail);
   }
 
-  if (res.status === 204) {
+  if (res.status === 204 || res.status === 205) {
     return undefined as T;
   }
-  return res.json() as Promise<T>;
+
+  const text = await res.text();
+  if (!text.trim()) {
+    return undefined as T;
+  }
+  return JSON.parse(text) as T;
 }
 
 export async function login(email: string, password: string): Promise<TokenResponse> {
@@ -146,6 +153,49 @@ export async function getOrganizationTree(): Promise<OrganizationTreeNode[]> {
   return apiFetch<OrganizationTreeNode[]>("/api/organizations/tree");
 }
 
+export async function getOrganizationTypes(): Promise<OrganizationType[]> {
+  return apiFetch<OrganizationType[]>("/api/organization-types");
+}
+
+export async function getAllOrganizationTypes(): Promise<OrganizationType[]> {
+  return apiFetch<OrganizationType[]>("/api/organization-types/all");
+}
+
+export async function getOrganizationType(id: string): Promise<OrganizationType> {
+  return apiFetch<OrganizationType>(`/api/organization-types/${id}`);
+}
+
+export async function createOrganizationType(
+  body: OrganizationTypeRequest,
+): Promise<OrganizationType> {
+  return apiFetch<OrganizationType>("/api/organization-types", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateOrganizationType(
+  id: string,
+  body: OrganizationTypeRequest,
+): Promise<OrganizationType> {
+  return apiFetch<OrganizationType>(`/api/organization-types/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deactivateOrganizationType(id: string): Promise<OrganizationType> {
+  return apiFetch<OrganizationType>(`/api/organization-types/${id}/deactivate`, {
+    method: "PATCH",
+  });
+}
+
+export async function deleteOrganizationType(id: string): Promise<void> {
+  return apiFetch<void>(`/api/organization-types/${id}`, {
+    method: "DELETE",
+  });
+}
+
 export async function importOrganizations(file: File): Promise<ImportResult> {
   const form = new FormData();
   form.append("file", file);
@@ -166,21 +216,105 @@ export async function importUsers(file: File): Promise<ImportResult> {
 
 export async function searchUsers(params: {
   page?: number;
+  size?: number;
   search?: string;
   role?: UserRole;
+  organizationId?: string;
 }): Promise<PageResponse<User>> {
   const q = new URLSearchParams();
   q.set("page", String(params.page ?? 0));
-  q.set("size", "20");
+  q.set("size", String(params.size ?? 20));
   if (params.search) q.set("search", params.search);
   if (params.role) q.set("role", params.role);
+  if (params.organizationId) q.set("organizationId", params.organizationId);
   return apiFetch<PageResponse<User>>(`/api/users?${q}`);
 }
 
-export async function getLoginAudit(page = 0): Promise<PageResponse<LoginAuditEntry>> {
-  return apiFetch<PageResponse<LoginAuditEntry>>(
-    `/api/admin/login-audit?page=${page}&size=30`,
-  );
+export async function getUser(id: string): Promise<User> {
+  return apiFetch<User>(`/api/users/${id}`);
+}
+
+export interface CreateUserResult {
+  user: User;
+  temporaryPassword: string;
+}
+
+export async function createUser(body: {
+  staffNumber: string;
+  email: string;
+  lastName: string;
+  firstName: string;
+  phone?: string;
+  role: UserRole;
+  organizationId: string;
+  jobTitle?: string;
+  active: boolean;
+}): Promise<CreateUserResult> {
+  return apiFetch<CreateUserResult>("/api/users", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateUser(
+  id: string,
+  body: {
+    staffNumber: string;
+    email: string;
+    lastName: string;
+    firstName: string;
+    phone?: string;
+    role: UserRole;
+    organizationId: string;
+    jobTitle?: string;
+    active: boolean;
+  },
+): Promise<User> {
+  return apiFetch<User>(`/api/users/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function activateUser(id: string): Promise<User> {
+  return apiFetch<User>(`/api/users/${id}/activate`, { method: "PATCH" });
+}
+
+export async function unlockUser(id: string): Promise<User> {
+  return apiFetch<User>(`/api/users/${id}/unlock`, { method: "PATCH" });
+}
+
+export async function resetUserPassword(id: string): Promise<{ temporaryPassword: string }> {
+  return apiFetch<{ temporaryPassword: string }>(`/api/users/${id}/reset-password`, {
+    method: "POST",
+  });
+}
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<UserProfile> {
+  return apiFetch<UserProfile>("/api/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+}
+
+export async function getLoginAudit(params: {
+  page?: number;
+  email?: string;
+  success?: boolean;
+  from?: string;
+  to?: string;
+}): Promise<PageResponse<LoginAuditEntry>> {
+  const q = new URLSearchParams();
+  q.set("page", String(params.page ?? 0));
+  q.set("size", "30");
+  if (params.email) q.set("email", params.email);
+  if (params.success !== undefined) q.set("success", String(params.success));
+  if (params.from) q.set("from", params.from);
+  if (params.to) q.set("to", params.to);
+  return apiFetch<PageResponse<LoginAuditEntry>>(`/api/admin/login-audit?${q}`);
 }
 
 export async function deactivateUser(id: string): Promise<User> {

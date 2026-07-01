@@ -9,21 +9,23 @@ import {
 import {
   BellIcon,
   ChevronRightIcon,
+  ComponentInstanceIcon,
   DashboardIcon,
-  FileTextIcon,
   HamburgerMenuIcon,
-  HomeIcon,
   MagnifyingGlassIcon,
+  Share1Icon,
   MoonIcon,
   PersonIcon,
   ReaderIcon,
   SunIcon,
 } from "@radix-ui/react-icons";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "./AuthProvider";
+import { canReadUsers } from "@/lib/auth-storage";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useThemeAppearance } from "./ThemeToggle";
 import { UserProfileMenu } from "./UserProfileMenu";
@@ -33,18 +35,55 @@ interface NavItem {
   labelKey: string;
   icon: React.ReactNode;
   admin?: boolean;
+  userRead?: boolean;
   superAdmin?: boolean;
+  matchPrefix?: string;
 }
 
-const MENU: NavItem[] = [
-  { href: "/dashboard", labelKey: "nav.dashboard", icon: <DashboardIcon /> },
-];
+interface NavSection {
+  labelKey: string;
+  items: NavItem[];
+}
 
-const ADMIN: NavItem[] = [
-  { href: "/admin/org", labelKey: "nav.orgChart", icon: <HomeIcon />, admin: true },
-  { href: "/admin/users", labelKey: "nav.users", icon: <PersonIcon />, admin: true },
-  { href: "/admin/audit", labelKey: "nav.loginAudit", icon: <ReaderIcon />, superAdmin: true },
-];
+const MAIN_SECTION: NavSection = {
+  labelKey: "nav.main",
+  items: [{ href: "/dashboard", labelKey: "nav.dashboard", icon: <DashboardIcon /> }],
+};
+
+const ORG_SECTION: NavSection = {
+  labelKey: "nav.organization",
+  items: [
+    {
+      href: "/admin/org",
+      labelKey: "nav.orgChart",
+      icon: <Share1Icon />,
+      admin: true,
+      matchPrefix: "/admin/org",
+    },
+    {
+      href: "/admin/org/types",
+      labelKey: "nav.orgTypes",
+      icon: <ComponentInstanceIcon />,
+      admin: true,
+    },
+  ],
+};
+
+const ADMIN_SECTION: NavSection = {
+  labelKey: "nav.administration",
+  items: [
+    { href: "/admin/users", labelKey: "nav.users", icon: <PersonIcon />, userRead: true },
+    { href: "/admin/audit", labelKey: "nav.loginAudit", icon: <ReaderIcon />, superAdmin: true },
+  ],
+};
+
+function isNavItemActive(item: NavItem, pathname: string): boolean {
+  if (item.href === "/admin/org") {
+    return pathname === "/admin/org" || (pathname.startsWith("/admin/org/") && !pathname.startsWith("/admin/org/types"));
+  }
+  const prefix = item.matchPrefix ?? item.href;
+  return pathname === item.href || pathname.startsWith(`${prefix}/`);
+}
 
 function NavItemLink({
   item,
@@ -76,7 +115,7 @@ function NavItemLink({
       {!collapsed && (
         <>
           <span className="sidebar-nav-item__label">{label}</span>
-          <ChevronRightIcon className="sidebar-nav-item__chevron" width={16} height={16} />
+          <ChevronRightIcon className="sidebar-nav-item__chevron" width={14} height={14} />
         </>
       )}
     </Link>
@@ -86,12 +125,12 @@ function NavItemLink({
 function SidebarNav({
   collapsed,
   pathname,
-  visibleAdmin,
+  sections,
   onNavigate,
 }: {
   collapsed: boolean;
   pathname: string;
-  visibleAdmin: NavItem[];
+  sections: NavSection[];
   onNavigate?: () => void;
 }) {
   const { t } = useTranslation();
@@ -99,39 +138,23 @@ function SidebarNav({
   return (
     <ScrollArea type="auto" scrollbars="vertical" style={{ flex: 1 }}>
       <nav className={`sidebar-nav${collapsed ? " sidebar-nav--collapsed" : ""}`}>
-        <div className="sidebar-section">
-          {!collapsed && <span className="sidebar-section__label">{t("common.menu")}</span>}
-          <div className="sidebar-nav-list">
-            {MENU.map((item) => (
-              <NavItemLink
-                key={item.href}
-                item={item}
-                label={t(item.labelKey)}
-                active={pathname.startsWith(item.href)}
-                collapsed={collapsed}
-                onClick={onNavigate}
-              />
-            ))}
-          </div>
-        </div>
-
-        {visibleAdmin.length > 0 && (
-          <div className="sidebar-section">
-            {!collapsed && <span className="sidebar-section__label">{t("common.others")}</span>}
+        {sections.map((section) => (
+          <div key={section.labelKey} className="sidebar-section">
+            {!collapsed && <span className="sidebar-section__label">{t(section.labelKey)}</span>}
             <div className="sidebar-nav-list">
-              {visibleAdmin.map((item) => (
+              {section.items.map((item) => (
                 <NavItemLink
                   key={item.href}
                   item={item}
                   label={t(item.labelKey)}
-                  active={pathname.startsWith(item.href)}
+                  active={isNavItemActive(item, pathname)}
                   collapsed={collapsed}
                   onClick={onNavigate}
                 />
               ))}
             </div>
           </div>
-        )}
+        ))}
       </nav>
     </ScrollArea>
   );
@@ -147,15 +170,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
-  const visibleAdmin = useMemo(
-    () =>
-      ADMIN.filter((item) => {
-        if (item.superAdmin) return user?.role === "SUPER_ADMIN";
-        if (item.admin) return isAdmin;
-        return true;
-      }),
-    [user?.role, isAdmin],
-  );
+  function canSeeItem(item: NavItem): boolean {
+    if (item.superAdmin) return user?.role === "SUPER_ADMIN";
+    if (item.admin) return isAdmin;
+    if (item.userRead) return canReadUsers(user?.role);
+    return true;
+  }
+
+  const navSections = useMemo(() => {
+    const sections: NavSection[] = [MAIN_SECTION];
+
+    const orgItems = ORG_SECTION.items.filter(canSeeItem);
+    if (orgItems.length > 0) {
+      sections.push({ ...ORG_SECTION, items: orgItems });
+    }
+
+    const adminItems = ADMIN_SECTION.items.filter(canSeeItem);
+    if (adminItems.length > 0) {
+      sections.push({ ...ADMIN_SECTION, items: adminItems });
+    }
+
+    return sections;
+  }, [user?.role, isAdmin]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -188,17 +224,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const isCollapsed = collapsed && !isMobile;
     return (
       <>
-        <div className={`sidebar-brand${isCollapsed ? " sidebar-brand--collapsed" : ""}`}>
+        <Link
+          href="/dashboard"
+          className={`sidebar-brand${isCollapsed ? " sidebar-brand--collapsed" : ""}`}
+          onClick={isMobile ? () => setMobileOpen(false) : undefined}
+        >
           <div className="sidebar-brand__logo">
-            <FileTextIcon width={18} height={18} />
+            <Image
+              src="/logo-fluxpro.png"
+              alt="FluxPro"
+              width={36}
+              height={36}
+              priority
+              className="h-full w-full object-contain"
+            />
           </div>
-          {!isCollapsed && <span className="sidebar-brand__title">FluxPro</span>}
-        </div>
+          {!isCollapsed && <span className="sidebar-brand__title">{t("common.brandTitle")}</span>}
+        </Link>
 
         <SidebarNav
           collapsed={isCollapsed}
           pathname={pathname}
-          visibleAdmin={visibleAdmin}
+          sections={navSections}
           onNavigate={isMobile ? () => setMobileOpen(false) : undefined}
         />
 

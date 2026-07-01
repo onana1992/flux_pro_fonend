@@ -44,3 +44,20 @@ export function getStoredUser(): UserProfile | null {
 export function canAccessAdmin(role?: string): boolean {
   return role === "SUPER_ADMIN" || role === "BUSINESS_ADMIN";
 }
+
+export function canReadUsers(role?: string): boolean {
+  return (
+    canAccessAdmin(role) ||
+    role === "DIRECTOR" ||
+    role === "SERVICE_HEAD" ||
+    role === "REGIONAL_DIRECTOR"
+  );
+}
+
+export function canWriteUsers(role?: string): boolean {
+  return canAccessAdmin(role);
+}
+
+export function isSuperAdmin(role?: string): boolean {
+  return role === "SUPER_ADMIN";
+}

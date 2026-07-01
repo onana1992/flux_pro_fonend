@@ -10,12 +10,25 @@ export type UserRole =
   | "READER"
   | "REGIONAL_DIRECTOR";
 
-export type OrganizationType =
+export type OrganizationTypeCode =
   | "MINISTRY"
   | "DIRECTORATE"
   | "DIVISION"
   | "SERVICE"
   | "REGIONAL_DIRECTORATE";
+
+export interface OrganizationType {
+  id: string;
+  code: OrganizationTypeCode | string;
+  name: string;
+  nameEn?: string;
+  description?: string;
+  color?: string;
+  sortOrder: number;
+  allowsRoot: boolean;
+  isRegionalScope: boolean;
+  active: boolean;
+}
 
 export interface OrganizationSummary {
   id: string;
@@ -88,5 +101,17 @@ export interface LoginAuditEntry {
 }
 
 /** British spelling aliases used by some UI components */
-export type OrganisationType = OrganizationType;
+export type OrganisationType = OrganizationTypeCode;
 export type OrganisationTreeNode = OrganizationTreeNode;
+
+export interface OrganizationTypeRequest {
+  code: string;
+  name: string;
+  nameEn?: string;
+  description?: string;
+  color?: string;
+  sortOrder?: number;
+  allowsRoot: boolean;
+  isRegionalScope: boolean;
+  active: boolean;
+}

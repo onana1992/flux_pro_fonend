@@ -15,6 +15,7 @@ import {
   FileTextIcon,
   HomeIcon,
   PersonIcon,
+  Share1Icon,
   ReaderIcon,
 } from "@radix-ui/react-icons";
 import { useTranslation } from "react-i18next";
@@ -73,7 +74,7 @@ export default function DashboardPage() {
   });
 
   const quickLinks = [
-    { labelKey: "nav.orgChart", href: "/admin/org", icon: <HomeIcon />, bg: "#ecf3ff", color: "#465fff" },
+    { labelKey: "nav.orgChart", href: "/admin/org", icon: <Share1Icon />, bg: "#ecf3ff", color: "#465fff" },
     { labelKey: "nav.users", href: "/admin/users", icon: <PersonIcon />, bg: "#ecfdf3", color: "#12b76a" },
     { labelKey: "nav.loginAudit", href: "/admin/audit", icon: <ReaderIcon />, bg: "#f4f3ff", color: "#7c3aed", superAdmin: true },
   ].filter((l) => {

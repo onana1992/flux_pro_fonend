@@ -1,0 +1,162 @@
+{
+  "common": {
+    "loading": "Chargement…",
+    "errorLoad": "Erreur de chargement",
+    "importFailed": "Import échoué",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "search": "Rechercher",
+    "menu": "Menu",
+    "others": "Autres",
+    "inactiveOrg": "Inactif",
+    "units": "{{count}} unité(s)",
+    "importCsv": "Importer CSV",
+    "importSuccess": "Import terminé — {{created}} créé(s), {{updated}} mis à jour.",
+    "importSuccessShort": "Import — {{created}} créé(s), {{updated}} mis à jour.",
+    "connectionFailed": "Connexion impossible",
+    "sessionCheck": "Vérification de la session…",
+    "passwordChangeRequired": "Changement requis",
+    "passwordUpToDate": "À jour",
+    "sessionActive": "Active · 8 h",
+    "language": "Langue",
+    "selectLanguage": "Choisir la langue"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "orgChart": "Organigramme",
+    "users": "Utilisateurs",
+    "loginAudit": "Journal connexions"
+  },
+  "header": {
+    "menu": "Menu",
+    "searchPlaceholder": "Rechercher ou saisir une commande…",
+    "darkMode": "Mode sombre",
+    "lightMode": "Mode clair",
+    "notifications": "Notifications"
+  },
+  "profile": {
+    "editProfile": "Modifier le profil",
+    "accountSettings": "Paramètres du compte",
+    "support": "Support",
+    "logout": "Déconnexion"
+  },
+  "login": {
+    "title": "Connexion",
+    "subtitle": "Email institutionnel et mot de passe",
+    "email": "Email",
+    "password": "Mot de passe",
+    "emailPlaceholder": "nom@mintp.cm",
+    "submit": "Se connecter",
+    "submitting": "Connexion…",
+    "demo": "Démo : e.fotso@mintp.cm / Mintp@2025",
+    "heroTitle": "Gestion des dossiers par chaîne hiérarchique",
+    "heroSubtitle": "Plateforme pilote du Ministère des Travaux Publics du Cameroun — suivi, passation et traçabilité des dossiers administratifs.",
+    "copyright": "© MINTP · Yaoundé, Cameroun"
+  },
+  "dashboard": {
+    "hello": "Bonjour, {{name}}",
+    "overview": "Vue d'ensemble FluxPro — MINTP",
+    "organisation": "Organisation",
+    "pilotAgents": "Agents pilotes",
+    "activeFiles": "Dossiers actifs",
+    "yourRole": "Votre rôle",
+    "mintpRef": "Référentiel MINTP",
+    "passationChain": "Chaîne de passation",
+    "sprint2": "Sprint 2",
+    "session8h": "Session 8 h",
+    "filesByMonth": "Dossiers par mois",
+    "filesByMonthSub": "Volume estimé — disponible au Sprint 2",
+    "annualTotal": "Total annuel",
+    "monthlyAvg": "Moyenne / mois",
+    "peakMay": "Pic (Mai)",
+    "treatmentGoal": "Objectif de traitement",
+    "treatmentGoalSub": "Délai moyen de passation par maillon",
+    "goal": "objectif",
+    "trendVsLastMonth": "+10% vs mois dernier",
+    "target": "Objectif",
+    "average": "Moyenne",
+    "today": "Aujourd'hui",
+    "myProfile": "Mon profil",
+    "sessionInfo": "Informations de session",
+    "direction": "Direction",
+    "orgCode": "Code org.",
+    "password": "Mot de passe",
+    "jwtSession": "Session JWT",
+    "quickAccess": "Accès rapide",
+    "quickAccessSub": "Administration et configuration",
+    "months": {
+      "jan": "Jan",
+      "feb": "Fév",
+      "mar": "Mar",
+      "apr": "Avr",
+      "may": "Mai",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aoû",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Déc"
+    }
+  },
+  "admin": {
+    "org": {
+      "title": "Organigramme MINTP",
+      "description": "Graphe hiérarchique horizontal — de gauche à droite.",
+      "loading": "Chargement de l'organigramme…",
+      "emptyTitle": "Aucune organisation",
+      "emptyDescription": "Importez organisations-mintp.csv pour initialiser l'organigramme.",
+      "graphHint": "organigramme horizontal (gauche → droite)"
+    },
+    "users": {
+      "title": "Utilisateurs",
+      "description": "Gestion des agents pilotes — {{count}} compte(s).",
+      "importLabel": "Importer agents CSV",
+      "searchPlaceholder": "Rechercher nom, email, matricule…",
+      "allRoles": "Tous les rôles",
+      "loading": "Chargement des utilisateurs…",
+      "emptyTitle": "Aucun utilisateur",
+      "emptyDescription": "Modifiez les filtres ou importez agents-mintp.csv.",
+      "agent": "Agent",
+      "matricule": "Matricule",
+      "email": "Email",
+      "role": "Rôle",
+      "organisation": "Organisation",
+      "status": "Statut",
+      "deactivate": "Désactiver",
+      "deactivateConfirm": "Désactiver cet utilisateur ?"
+    },
+    "audit": {
+      "title": "Journal des connexions",
+      "description": "Historique AUTH-07 — réservé SUPER_ADMIN.",
+      "success": "Réussies",
+      "failed": "Échouées",
+      "loading": "Chargement du journal…",
+      "emptyTitle": "Aucune entrée",
+      "emptyDescription": "Les connexions apparaîtront ici.",
+      "dateTime": "Date & heure",
+      "email": "Email",
+      "result": "Résultat",
+      "ip": "IP",
+      "failReason": "Motif échec",
+      "successResult": "Succès",
+      "failResult": "Échec"
+    }
+  },
+  "pagination": {
+    "page": "Page {{current}} sur {{total}}",
+    "prev": "Précédent",
+    "next": "Suivant"
+  },
+  "orgTypes": {
+    "MINISTERE": "MINISTERE",
+    "DIRECTION": "DIRECTION",
+    "DIVISION": "DIVISION",
+    "SERVICE": "SERVICE",
+    "DRTP": "DRTP"
+  },
+  "api": {
+    "timeout": "Le serveur met trop de temps à répondre",
+    "networkError": "Impossible de contacter le serveur API (port 8080). Vérifiez que le backend est démarré."
+  }
+}

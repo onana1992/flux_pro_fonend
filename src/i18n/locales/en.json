@@ -1,0 +1,162 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "errorLoad": "Loading error",
+    "importFailed": "Import failed",
+    "active": "Active",
+    "inactive": "Inactive",
+    "search": "Search",
+    "menu": "Menu",
+    "others": "Others",
+    "inactiveOrg": "Inactive",
+    "units": "{{count}} unit(s)",
+    "importCsv": "Import CSV",
+    "importSuccess": "Import complete — {{created}} created, {{updated}} updated.",
+    "importSuccessShort": "Import — {{created}} created, {{updated}} updated.",
+    "connectionFailed": "Unable to sign in",
+    "sessionCheck": "Verifying session…",
+    "passwordChangeRequired": "Change required",
+    "passwordUpToDate": "Up to date",
+    "sessionActive": "Active · 8 h",
+    "language": "Language",
+    "selectLanguage": "Choose language"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "orgChart": "Org chart",
+    "users": "Users",
+    "loginAudit": "Login audit"
+  },
+  "header": {
+    "menu": "Menu",
+    "searchPlaceholder": "Search or type command…",
+    "darkMode": "Dark mode",
+    "lightMode": "Light mode",
+    "notifications": "Notifications"
+  },
+  "profile": {
+    "editProfile": "Edit profile",
+    "accountSettings": "Account settings",
+    "support": "Support",
+    "logout": "Sign out"
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Institutional email and password",
+    "email": "Email",
+    "password": "Password",
+    "emailPlaceholder": "name@mintp.cm",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "demo": "Demo: e.fotso@mintp.cm / Mintp@2025",
+    "heroTitle": "File management by hierarchical chain",
+    "heroSubtitle": "MINTP pilot platform — tracking, routing and audit trail of administrative files.",
+    "copyright": "© MINTP · Yaoundé, Cameroon"
+  },
+  "dashboard": {
+    "hello": "Hello, {{name}}",
+    "overview": "FluxPro overview — MINTP",
+    "organisation": "Organisation",
+    "pilotAgents": "Pilot agents",
+    "activeFiles": "Active files",
+    "yourRole": "Your role",
+    "mintpRef": "MINTP registry",
+    "passationChain": "Routing chain",
+    "sprint2": "Sprint 2",
+    "session8h": "Session 8 h",
+    "filesByMonth": "Files by month",
+    "filesByMonthSub": "Estimated volume — available in Sprint 2",
+    "annualTotal": "Annual total",
+    "monthlyAvg": "Monthly avg.",
+    "peakMay": "Peak (May)",
+    "treatmentGoal": "Processing target",
+    "treatmentGoalSub": "Average routing time per step",
+    "goal": "target",
+    "trendVsLastMonth": "+10% vs last month",
+    "target": "Target",
+    "average": "Average",
+    "today": "Today",
+    "myProfile": "My profile",
+    "sessionInfo": "Session information",
+    "direction": "Department",
+    "orgCode": "Org. code",
+    "password": "Password",
+    "jwtSession": "JWT session",
+    "quickAccess": "Quick access",
+    "quickAccessSub": "Administration and configuration",
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Dec"
+    }
+  },
+  "admin": {
+    "org": {
+      "title": "MINTP org chart",
+      "description": "Horizontal hierarchy graph — left to right.",
+      "loading": "Loading org chart…",
+      "emptyTitle": "No organisation",
+      "emptyDescription": "Import organisations-mintp.csv to initialise the org chart.",
+      "graphHint": "horizontal org chart (left → right)"
+    },
+    "users": {
+      "title": "Users",
+      "description": "Pilot agents management — {{count}} account(s).",
+      "importLabel": "Import agents CSV",
+      "searchPlaceholder": "Search name, email, ID…",
+      "allRoles": "All roles",
+      "loading": "Loading users…",
+      "emptyTitle": "No users",
+      "emptyDescription": "Adjust filters or import agents-mintp.csv.",
+      "agent": "Agent",
+      "matricule": "Employee ID",
+      "email": "Email",
+      "role": "Role",
+      "organisation": "Organisation",
+      "status": "Status",
+      "deactivate": "Deactivate",
+      "deactivateConfirm": "Deactivate this user?"
+    },
+    "audit": {
+      "title": "Login audit log",
+      "description": "AUTH-07 history — SUPER_ADMIN only.",
+      "success": "Successful",
+      "failed": "Failed",
+      "loading": "Loading audit log…",
+      "emptyTitle": "No entries",
+      "emptyDescription": "Sign-in attempts will appear here.",
+      "dateTime": "Date & time",
+      "email": "Email",
+      "result": "Result",
+      "ip": "IP",
+      "failReason": "Failure reason",
+      "successResult": "Success",
+      "failResult": "Failed"
+    }
+  },
+  "pagination": {
+    "page": "Page {{current}} of {{total}}",
+    "prev": "Previous",
+    "next": "Next"
+  },
+  "orgTypes": {
+    "MINISTERE": "MINISTRY",
+    "DIRECTION": "DIRECTORATE",
+    "DIVISION": "DIVISION",
+    "SERVICE": "SERVICE",
+    "DRTP": "DRTP"
+  },
+  "api": {
+    "timeout": "The server is taking too long to respond",
+    "networkError": "Unable to reach the API server (port 8080). Check that the backend is running."
+  }
+}

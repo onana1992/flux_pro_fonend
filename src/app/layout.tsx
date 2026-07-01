@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { AuthProvider } from "@/components/AuthProvider";
+import { I18nProvider } from "@/components/I18nProvider";
+import { RadixProvider } from "@/components/RadixProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "flux-pro-front",
-  description: "Flux Pro Frontend",
+  title: "FluxPro — MINTP",
+  description: "Suivi de dossiers par chaîne hiérarchique — Ministère des Travaux Publics",
 };
 
 export default function RootLayout({
@@ -24,7 +27,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="antialiased">{children}</body>
+      <body>
+        <I18nProvider>
+          <RadixProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </RadixProvider>
+        </I18nProvider>
+      </body>
     </html>
   );
 }

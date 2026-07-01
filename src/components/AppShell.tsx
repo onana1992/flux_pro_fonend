@@ -27,7 +27,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "./AuthProvider";
-import { canAccessAdmin, canReadUsers, hasPermission } from "@/lib/auth-storage";
+import { canAccessAdmin, canReadUsers, canSeePermission, isSuperAdmin } from "@/lib/auth-storage";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useThemeAppearance } from "./ThemeToggle";
 import { UserProfileMenu } from "./UserProfileMenu";
@@ -175,15 +175,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
-  function canSeeItem(item: NavItem): boolean {
-    if (item.permission) return hasPermission(user, item.permission);
-    if (item.superAdmin) return user?.role === "SUPER_ADMIN";
-    if (item.admin) return isAdmin;
-    if (item.userRead) return canReadUsers(user);
-    return true;
-  }
-
   const navSections = useMemo(() => {
+    function canSeeItem(item: NavItem): boolean {
+      if (item.permission) return canSeePermission(user, item.permission);
+      if (item.superAdmin) return isSuperAdmin(user);
+      if (item.admin) return isAdmin;
+      if (item.userRead) return canReadUsers(user);
+      return true;
+    }
+
     const sections: NavSection[] = [MAIN_SECTION];
 
     const orgItems = ORG_SECTION.items.filter(canSeeItem);
@@ -197,7 +197,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
 
     return sections;
-  }, [user?.role, isAdmin]);
+  }, [user, isAdmin]);
 
   useEffect(() => {
     setMobileOpen(false);

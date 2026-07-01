@@ -13,7 +13,9 @@ import {
   canAccessAdmin,
   clearAuth,
   getAccessToken,
+  getRefreshToken,
   getStoredUser,
+  saveAuth,
 } from "@/lib/auth-storage";
 import type { UserProfile } from "@/lib/types";
 
@@ -40,6 +42,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const me = await getMe();
       setUser(me);
+      const token = getAccessToken();
+      const refresh = getRefreshToken();
+      if (token && refresh) {
+        saveAuth({ accessToken: token, refreshToken: refresh, user: me });
+      }
     } catch {
       clearAuth();
       setUser(null);

@@ -95,6 +95,7 @@ function switchPermissionByRole(role: UserProfile["role"], permission: string): 
       return true;
     case "FILES:CREATE":
     case "FILES:UPDATE":
+    case "FILES:TRANSMIT":
       return (
         role === "SUPER_ADMIN" ||
         role === "BUSINESS_ADMIN" ||

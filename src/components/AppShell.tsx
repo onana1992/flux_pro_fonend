@@ -11,6 +11,7 @@ import {
   ChevronRightIcon,
   ComponentInstanceIcon,
   DashboardIcon,
+  FileIcon,
   HamburgerMenuIcon,
   MagnifyingGlassIcon,
   Share1Icon,
@@ -51,7 +52,16 @@ interface NavSection {
 
 const MAIN_SECTION: NavSection = {
   labelKey: "nav.main",
-  items: [{ href: "/dashboard", labelKey: "nav.dashboard", icon: <DashboardIcon /> }],
+  items: [
+    { href: "/dashboard", labelKey: "nav.dashboard", icon: <DashboardIcon /> },
+    {
+      href: "/files",
+      labelKey: "nav.files",
+      icon: <ReaderIcon />,
+      permission: "FILES:READ",
+      matchPrefix: "/files",
+    },
+  ],
 };
 
 const ORG_SECTION: NavSection = {
@@ -80,6 +90,7 @@ const ADMIN_SECTION: NavSection = {
     { href: "/admin/roles", labelKey: "nav.roles", icon: <IdCardIcon />, permission: "ROLES:READ" },
     { href: "/admin/permissions", labelKey: "nav.permissions", icon: <LockClosedIcon />, permission: "PERMISSIONS:READ" },
     { href: "/admin/chain-templates", labelKey: "nav.chainTemplates", icon: <LayersIcon />, permission: "CHAIN_TEMPLATES:READ" },
+    { href: "/admin/file-types", labelKey: "nav.fileTypes", icon: <FileIcon />, permission: "FILE_TYPES:READ" },
     { href: "/admin/audit", labelKey: "nav.loginAudit", icon: <ReaderIcon />, permission: "LOGIN_AUDIT:READ" },
   ],
 };

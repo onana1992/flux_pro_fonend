@@ -209,3 +209,105 @@ export interface ChainTemplateUpdateRequest {
   totalDelayDays: number;
   delayUnit: DelayUnit;
 }
+
+export interface FileType {
+  id: string;
+  code: string;
+  name: string;
+  nameEn?: string;
+  description?: string;
+  directionCode?: string | null;
+  sortOrder: number;
+  active: boolean;
+}
+
+export interface FileTypeRequest {
+  code: string;
+  name: string;
+  nameEn?: string;
+  description?: string;
+  directionCode?: string;
+  sortOrder?: number;
+  active: boolean;
+}
+
+export type FilePriority = "NORMAL" | "URGENT" | "VERY_URGENT";
+
+export type FileStatus =
+  | "DRAFT"
+  | "IN_PROGRESS"
+  | "ON_HOLD"
+  | "CLOSED"
+  | "ARCHIVED"
+  | "CANCELLED";
+
+export interface FileSummary {
+  id: string;
+  referenceNumber?: string | null;
+  fileTypeCode: string;
+  subject: string;
+  priority: FilePriority;
+  status: FileStatus;
+  receivedAt: string;
+  organizationCode: string;
+  organizationName: string;
+  chainTemplateCode?: string | null;
+  createdAt: string;
+}
+
+export interface FileAttachment {
+  id: string;
+  originalFilename: string;
+  contentType: string;
+  sizeBytes: number;
+  responseDocument: boolean;
+  uploadedById: string;
+  uploadedByName?: string;
+  createdAt: string;
+}
+
+export interface FileDetail extends FileSummary {
+  senderOrBeneficiary: string;
+  organizationId: string;
+  chainTemplateId?: string | null;
+  chainTemplateName?: string | null;
+  createdByUserId: string;
+  createdByName?: string;
+  closureReason?: string | null;
+  closedAt?: string | null;
+  cancellationReason?: string | null;
+  cancelledAt?: string | null;
+  metadata?: Record<string, unknown> | null;
+  attachments: FileAttachment[];
+  updatedAt: string;
+}
+
+export interface FileCreateRequest {
+  fileTypeCode: string;
+  organizationId: string;
+  subject: string;
+  senderOrBeneficiary: string;
+  receivedAt: string;
+  priority: FilePriority;
+  submit: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+export interface FileUpdateRequest {
+  fileTypeCode: string;
+  organizationId: string;
+  subject: string;
+  senderOrBeneficiary: string;
+  receivedAt: string;
+  priority: FilePriority;
+  metadata?: Record<string, unknown>;
+}
+
+export interface FileCloseRequest {
+  closureReason: string;
+  responseAttachmentId: string;
+}
+
+export interface FileCancelRequest {
+  reason: string;
+}

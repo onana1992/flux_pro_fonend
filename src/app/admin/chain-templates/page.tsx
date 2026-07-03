@@ -23,10 +23,11 @@ import {
   ApiError,
   deactivateChainTemplate,
   deleteChainTemplate,
+  getFileTypes,
   searchChainTemplates,
 } from "@/lib/api";
 import { hasPermission } from "@/lib/auth-storage";
-import type { ChainTemplateSummary } from "@/lib/types";
+import type { ChainTemplateSummary, FileType } from "@/lib/types";
 import { EmptyBlock, LoadingBlock, PageHeader, StatusAlert } from "@/components/ui/shared";
 
 export default function ChainTemplatesListPage() {
@@ -40,10 +41,17 @@ export default function ChainTemplatesListPage() {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [fileTypeCode, setFileTypeCode] = useState("");
+  const [fileTypes, setFileTypes] = useState<FileType[]>([]);
 
   const canCreate = hasPermission(user, "CHAIN_TEMPLATES:CREATE");
   const canUpdate = hasPermission(user, "CHAIN_TEMPLATES:UPDATE");
   const canDelete = hasPermission(user, "CHAIN_TEMPLATES:DELETE");
+
+  useEffect(() => {
+    getFileTypes()
+      .then(setFileTypes)
+      .catch(() => {});
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -135,12 +143,20 @@ export default function ChainTemplatesListPage() {
                 <Select.Item value="inactive">{t("common.inactive")}</Select.Item>
               </Select.Content>
             </Select.Root>
-            <TextField.Root
-              placeholder={t("admin.chainTemplates.fileTypeCode")}
-              value={fileTypeCode}
-              onChange={(e) => setFileTypeCode(e.target.value)}
-              style={{ width: 160 }}
-            />
+            <Select.Root
+              value={fileTypeCode || "all"}
+              onValueChange={(v) => setFileTypeCode(v === "all" ? "" : v)}
+            >
+              <Select.Trigger placeholder={t("admin.chainTemplates.fileTypeCode")} />
+              <Select.Content>
+                <Select.Item value="all">{t("admin.chainTemplates.allFileTypes")}</Select.Item>
+                {fileTypes.map((ft) => (
+                  <Select.Item key={ft.code} value={ft.code}>
+                    {ft.code}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Root>
           </Flex>
         </Card>
 

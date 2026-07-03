@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Badge, Box, Button, Card, Flex, Separator, Text } from "@radix-ui/themes";
+import { Badge, Box, Button, Card, Flex, Text } from "@radix-ui/themes";
+import { ChainCircuitWizard } from "@/components/ChainCircuitWizard";
 import { useTranslation } from "react-i18next";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -159,57 +160,12 @@ export default function ChainTemplateDetailPage() {
               </Card>
 
               <Card size="3" style={{ flex: 2 }}>
-                <Text weight="bold" mb="3">
-                  {t("admin.chainTemplates.circuitPreview")}
-                </Text>
-                <Flex direction="column" gap="0">
-                  {template.steps.map((step, index) => (
-                    <Box key={step.id ?? index}>
-                      <Flex gap="3" py="3">
-                        <Flex
-                          align="center"
-                          justify="center"
-                          style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: "50%",
-                            background: "var(--accent-3)",
-                            flexShrink: 0,
-                          }}
-                        >
-                          <Text size="2" weight="bold">
-                            {step.stepOrder}
-                          </Text>
-                        </Flex>
-                        <Flex direction="column" gap="1" style={{ flex: 1 }}>
-                          <Flex gap="2" align="center" wrap="wrap">
-                            <Text weight="medium">{step.label}</Text>
-                            {step.optional && (
-                              <Badge size="1" color="orange">
-                                {t("admin.chainTemplates.optional")}
-                              </Badge>
-                            )}
-                            {step.closureStep && (
-                              <Badge size="1" color="purple">
-                                {t("admin.chainTemplates.closureStep")}
-                              </Badge>
-                            )}
-                          </Flex>
-                          <Text size="2" color="gray">
-                            {step.responsibleRole} · {step.delayValue}{" "}
-                            {step.delayUnit === "WORKING_HOURS" ? "h" : "j.o."}
-                          </Text>
-                          {step.expectedAction && (
-                            <Text size="2" color="gray">
-                              {step.expectedAction}
-                            </Text>
-                          )}
-                        </Flex>
-                      </Flex>
-                      {index < template.steps.length - 1 && <Separator size="4" />}
-                    </Box>
-                  ))}
-                </Flex>
+                <Box mb="5">
+                  <Text weight="bold" as="p">
+                    {t("admin.chainTemplates.circuitPreview")}
+                  </Text>
+                </Box>
+                <ChainCircuitWizard steps={template.steps} />
               </Card>
             </Flex>
           </>

@@ -5,6 +5,17 @@ import type {
   ChainTemplateUpdateRequest,
   ChainStepTemplate,
   DelayUnit,
+  FileType,
+  FileTypeRequest,
+  FileSummary,
+  FileDetail,
+  FileCreateRequest,
+  FileUpdateRequest,
+  FileCloseRequest,
+  FileCancelRequest,
+  FileAttachment,
+  FilePriority,
+  FileStatus,
   ImportResult,
   LoginAuditEntry,
   OrganizationDetail,
@@ -540,4 +551,153 @@ export async function duplicateChainTemplate(id: string): Promise<ChainTemplateD
   return apiFetch<ChainTemplateDetail>(`/api/admin/chain-templates/${id}/duplicate`, {
     method: "POST",
   });
+}
+
+export async function getFileTypes(): Promise<FileType[]> {
+  return apiFetch<FileType[]>("/api/file-types");
+}
+
+export async function getAllFileTypes(): Promise<FileType[]> {
+  return apiFetch<FileType[]>("/api/admin/file-types");
+}
+
+export async function createFileType(body: FileTypeRequest): Promise<FileType> {
+  return apiFetch<FileType>("/api/admin/file-types", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateFileType(id: string, body: FileTypeRequest): Promise<FileType> {
+  return apiFetch<FileType>(`/api/admin/file-types/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deactivateFileType(id: string): Promise<FileType> {
+  return apiFetch<FileType>(`/api/admin/file-types/${id}/deactivate`, {
+    method: "PATCH",
+  });
+}
+
+export async function deleteFileType(id: string): Promise<void> {
+  return apiFetch<void>(`/api/admin/file-types/${id}`, { method: "DELETE" });
+}
+
+export async function searchFiles(params: {
+  page?: number;
+  size?: number;
+  search?: string;
+  organizationId?: string;
+  fileTypeCode?: string;
+  status?: FileStatus;
+  priority?: FilePriority;
+  receivedFrom?: string;
+  receivedTo?: string;
+}): Promise<PageResponse<FileSummary>> {
+  const q = new URLSearchParams();
+  q.set("page", String(params.page ?? 0));
+  q.set("size", String(params.size ?? 20));
+  if (params.search) q.set("search", params.search);
+  if (params.organizationId) q.set("organizationId", params.organizationId);
+  if (params.fileTypeCode) q.set("fileTypeCode", params.fileTypeCode);
+  if (params.status) q.set("status", params.status);
+  if (params.priority) q.set("priority", params.priority);
+  if (params.receivedFrom) q.set("receivedFrom", params.receivedFrom);
+  if (params.receivedTo) q.set("receivedTo", params.receivedTo);
+  return apiFetch<PageResponse<FileSummary>>(`/api/files?${q}`);
+}
+
+export async function getFile(id: string): Promise<FileDetail> {
+  return apiFetch<FileDetail>(`/api/files/${id}`);
+}
+
+export async function createFile(body: FileCreateRequest): Promise<FileDetail> {
+  return apiFetch<FileDetail>("/api/files", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateFile(id: string, body: FileUpdateRequest): Promise<FileDetail> {
+  return apiFetch<FileDetail>(`/api/files/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function submitFile(id: string): Promise<FileDetail> {
+  return apiFetch<FileDetail>(`/api/files/${id}/submit`, { method: "POST" });
+}
+
+export async function cancelFile(id: string, body: FileCancelRequest): Promise<FileDetail> {
+  return apiFetch<FileDetail>(`/api/files/${id}/cancel`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function closeFile(id: string, body: FileCloseRequest): Promise<FileDetail> {
+  return apiFetch<FileDetail>(`/api/files/${id}/close`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function archiveFile(id: string): Promise<FileDetail> {
+  return apiFetch<FileDetail>(`/api/files/${id}/archive`, { method: "PATCH" });
+}
+
+export async function deleteFile(id: string): Promise<void> {
+  return apiFetch<void>(`/api/files/${id}`, { method: "DELETE" });
+}
+
+export async function uploadFileAttachment(
+  fileId: string,
+  file: File,
+  responseDocument = false,
+): Promise<FileAttachment> {
+  const form = new FormData();
+  form.append("file", file);
+  const q = responseDocument ? "?responseDocument=true" : "";
+  return apiFetch<FileAttachment>(`/api/files/${fileId}/attachments${q}`, {
+    method: "POST",
+    body: form,
+  });
+}
+
+export async function deleteFileAttachment(fileId: string, attachmentId: string): Promise<void> {
+  return apiFetch<void>(`/api/files/${fileId}/attachments/${attachmentId}`, {
+    method: "DELETE",
+  });
+}
+
+export function fileAttachmentDownloadUrl(fileId: string, attachmentId: string): string {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+  return `${API_URL}/api/files/${fileId}/attachments/${attachmentId}/download`;
+}
+
+export async function downloadFileAttachment(
+  fileId: string,
+  attachmentId: string,
+  filename: string,
+): Promise<void> {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+  const token = getAccessToken();
+  const res = await fetchWithTimeout(
+    `${API_URL}/api/files/${fileId}/attachments/${attachmentId}/download`,
+    { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+  );
+  if (!res.ok) {
+    const detail = await parseError(res);
+    throw new ApiError(detail, res.status, detail);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }

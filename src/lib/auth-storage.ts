@@ -85,6 +85,36 @@ function switchPermissionByRole(role: UserProfile["role"], permission: string): 
       return role === "SUPER_ADMIN" || role === "BUSINESS_ADMIN";
     case "CHAIN_TEMPLATES:DELETE":
       return role === "SUPER_ADMIN";
+    case "FILE_TYPES:READ":
+      return true;
+    case "FILE_TYPES:CREATE":
+    case "FILE_TYPES:UPDATE":
+    case "FILE_TYPES:DELETE":
+      return role === "SUPER_ADMIN" || role === "BUSINESS_ADMIN";
+    case "FILES:READ":
+      return true;
+    case "FILES:CREATE":
+    case "FILES:UPDATE":
+      return (
+        role === "SUPER_ADMIN" ||
+        role === "BUSINESS_ADMIN" ||
+        role === "DIRECTOR" ||
+        role === "SERVICE_HEAD" ||
+        role === "REGIONAL_DIRECTOR" ||
+        role === "AGENT" ||
+        role === "SUPPORT"
+      );
+    case "FILES:CLOSE":
+      return (
+        role === "SUPER_ADMIN" ||
+        role === "BUSINESS_ADMIN" ||
+        role === "DIRECTOR" ||
+        role === "REGIONAL_DIRECTOR"
+      );
+    case "FILES:ARCHIVE":
+      return role === "SUPER_ADMIN" || role === "BUSINESS_ADMIN" || role === "DIRECTOR";
+    case "FILES:DELETE":
+      return role === "SUPER_ADMIN";
     default:
       return false;
   }

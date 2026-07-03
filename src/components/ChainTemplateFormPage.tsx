@@ -22,6 +22,7 @@ import {
   ApiError,
   createChainTemplate,
   getChainTemplate,
+  getFileTypes,
   replaceChainTemplateSteps,
   updateChainTemplate,
 } from "@/lib/api";
@@ -29,6 +30,7 @@ import type {
   ChainStepTemplate,
   ChainTemplateDetail,
   DelayUnit,
+  FileType,
   UserRole,
 } from "@/lib/types";
 import { LoadingBlock, PageHeader, StatusAlert } from "@/components/ui/shared";
@@ -45,8 +47,6 @@ const ROLES: UserRole[] = [
   "READER",
   "REGIONAL_DIRECTOR",
 ];
-
-const FILE_TYPES = ["COUR-STD", "COUR-URG", "MARCHE-SMP", "AUTH-TRAV", "COOP-PART"];
 
 function emptyStep(order: number, closure = false): ChainStepTemplate {
   return {
@@ -99,6 +99,7 @@ export function ChainTemplateFormPage({ mode, template }: ChainTemplateFormPageP
       ? template.steps.map((s) => ({ ...s }))
       : [emptyStep(1), emptyStep(2, true)],
   );
+  const [fileTypes, setFileTypes] = useState<FileType[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -106,6 +107,12 @@ export function ChainTemplateFormPage({ mode, template }: ChainTemplateFormPageP
     () => steps.filter((s) => !s.closureStep).reduce((acc, s) => acc + toWorkingDays(s), 0),
     [steps],
   );
+
+  useEffect(() => {
+    getFileTypes()
+      .then(setFileTypes)
+      .catch(() => {});
+  }, []);
 
   function updateStep(index: number, patch: Partial<ChainStepTemplate>) {
     setSteps((prev) => prev.map((s, i) => (i === index ? { ...s, ...patch } : s)));
@@ -243,9 +250,9 @@ export function ChainTemplateFormPage({ mode, template }: ChainTemplateFormPageP
                       <Select.Trigger />
                       <Select.Content>
                         <Select.Item value="none">—</Select.Item>
-                        {FILE_TYPES.map((ft) => (
-                          <Select.Item key={ft} value={ft}>
-                            {ft}
+                        {fileTypes.map((ft) => (
+                          <Select.Item key={ft.code} value={ft.code}>
+                            {ft.code} — {ft.name}
                           </Select.Item>
                         ))}
                       </Select.Content>

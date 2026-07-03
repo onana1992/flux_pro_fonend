@@ -295,17 +295,12 @@ export function FileDetailPage({ fileId }: { fileId: string }) {
 
             <Flex gap="2" wrap="wrap" align="center" style={{ flexShrink: 0 }}>
               {file.status === "DRAFT" && canUpdate && (
-                <>
-                  <Button variant="soft" size="2" asChild>
-                    <Link href={`/files/${fileId}/edit`}>
-                      <Pencil1Icon />
-                      {t("files.edit")}
-                    </Link>
-                  </Button>
-                  <Button size="2" onClick={handleSubmit} disabled={busy}>
-                    {t("files.submit")}
-                  </Button>
-                </>
+                <Button variant="soft" size="2" asChild>
+                  <Link href={`/files/${fileId}/edit`}>
+                    <Pencil1Icon />
+                    {t("files.edit")}
+                  </Link>
+                </Button>
               )}
               {file.status === "CLOSED" && canArchive && (
                 <Button variant="soft" size="2" onClick={handleArchive} disabled={busy}>
@@ -320,23 +315,47 @@ export function FileDetailPage({ fileId }: { fileId: string }) {
       {error && <StatusAlert variant="error" message={error} />}
       {success && <StatusAlert variant="success" message={success} />}
 
-      {/* Main content */}
+      {/* Main: circuit / submit | Secondary: info, attachments, final actions */}
       <Grid columns={{ initial: "1", md: "5" }} gap="5">
-        {/* Left — Metadata + Attachments (3/5) */}
+        {/* Primary column — operational follow-up */}
         <Box style={{ gridColumn: "span 3" }}>
-          <Flex direction="column" gap="5">
-            {/* Metadata */}
+          {showSubmitSection ? (
             <Card size="3">
-              <Flex direction="column" gap="4">
+              <Flex direction="column" gap="3">
+                <Text weight="bold" size="3">
+                  {t("files.submitSection")}
+                </Text>
+                <Text size="2" color="gray" as="p">
+                  {t("files.submitHint")}
+                </Text>
+                <Flex gap="2" wrap="wrap">
+                  <Button onClick={handleSubmit} disabled={busy}>
+                    {t("files.submit")}
+                  </Button>
+                  <Button variant="soft" asChild>
+                    <Link href={`/files/${fileId}/edit`}>{t("files.edit")}</Link>
+                  </Button>
+                </Flex>
+              </Flex>
+            </Card>
+          ) : (
+            <PassageCircuit fileId={fileId} fileStatus={file.status} onChanged={load} />
+          )}
+        </Box>
+
+        {/* Secondary column — context + documents + final actions */}
+        <Box style={{ gridColumn: "span 2" }}>
+          <Flex direction="column" gap="4">
+            <Card size="3">
+              <Flex direction="column" gap="3">
                 <Text weight="bold" size="3">
                   {t("files.metadata")}
                 </Text>
-
-                <Table.Root variant="surface" size="2">
+                <Table.Root variant="surface" size="1">
                   <Table.Body>
                     <Table.Row>
-                      <Table.RowHeaderCell style={{ width: "40%", verticalAlign: "middle" }}>
-                        <Text size="2" color="gray">{t("files.senderOrBeneficiary")}</Text>
+                      <Table.RowHeaderCell style={{ width: "42%", verticalAlign: "middle" }}>
+                        <Text size="1" color="gray">{t("files.senderOrBeneficiary")}</Text>
                       </Table.RowHeaderCell>
                       <Table.Cell>
                         <Text size="2" weight="medium">{file.senderOrBeneficiary}</Text>
@@ -344,7 +363,7 @@ export function FileDetailPage({ fileId }: { fileId: string }) {
                     </Table.Row>
                     <Table.Row>
                       <Table.RowHeaderCell>
-                        <Text size="2" color="gray">{t("files.receivedAt")}</Text>
+                        <Text size="1" color="gray">{t("files.receivedAt")}</Text>
                       </Table.RowHeaderCell>
                       <Table.Cell>
                         <Text size="2" weight="medium">{file.receivedAt}</Text>
@@ -352,15 +371,17 @@ export function FileDetailPage({ fileId }: { fileId: string }) {
                     </Table.Row>
                     <Table.Row>
                       <Table.RowHeaderCell>
-                        <Text size="2" color="gray">{t("files.organization")}</Text>
+                        <Text size="1" color="gray">{t("files.organization")}</Text>
                       </Table.RowHeaderCell>
                       <Table.Cell>
-                        <Text size="2" weight="medium">{file.organizationCode} — {file.organizationName}</Text>
+                        <Text size="2" weight="medium">
+                          {file.organizationCode} — {file.organizationName}
+                        </Text>
                       </Table.Cell>
                     </Table.Row>
                     <Table.Row>
                       <Table.RowHeaderCell>
-                        <Text size="2" color="gray">{t("files.createdBy")}</Text>
+                        <Text size="1" color="gray">{t("files.createdBy")}</Text>
                       </Table.RowHeaderCell>
                       <Table.Cell>
                         <Text size="2" weight="medium">{file.createdByName ?? "—"}</Text>
@@ -368,7 +389,7 @@ export function FileDetailPage({ fileId }: { fileId: string }) {
                     </Table.Row>
                     <Table.Row>
                       <Table.RowHeaderCell>
-                        <Text size="2" color="gray">{t("files.createdAt")}</Text>
+                        <Text size="1" color="gray">{t("files.createdAt")}</Text>
                       </Table.RowHeaderCell>
                       <Table.Cell>
                         <Text size="2">{formatDateTime(file.createdAt)}</Text>
@@ -376,7 +397,7 @@ export function FileDetailPage({ fileId }: { fileId: string }) {
                     </Table.Row>
                     <Table.Row>
                       <Table.RowHeaderCell>
-                        <Text size="2" color="gray">{t("files.updatedAt")}</Text>
+                        <Text size="1" color="gray">{t("files.updatedAt")}</Text>
                       </Table.RowHeaderCell>
                       <Table.Cell>
                         <Text size="2">{formatDateTime(file.updatedAt)}</Text>
@@ -385,7 +406,7 @@ export function FileDetailPage({ fileId }: { fileId: string }) {
                     {file.closedAt && (
                       <Table.Row>
                         <Table.RowHeaderCell>
-                          <Text size="2" color="gray">{t("files.closedAt")}</Text>
+                          <Text size="1" color="gray">{t("files.closedAt")}</Text>
                         </Table.RowHeaderCell>
                         <Table.Cell>
                           <Text size="2">{formatDateTime(file.closedAt)}</Text>
@@ -395,7 +416,7 @@ export function FileDetailPage({ fileId }: { fileId: string }) {
                     {file.cancelledAt && (
                       <Table.Row>
                         <Table.RowHeaderCell>
-                          <Text size="2" color="gray">{t("files.cancelledAt")}</Text>
+                          <Text size="1" color="gray">{t("files.cancelledAt")}</Text>
                         </Table.RowHeaderCell>
                         <Table.Cell>
                           <Text size="2">{formatDateTime(file.cancelledAt)}</Text>
@@ -405,7 +426,7 @@ export function FileDetailPage({ fileId }: { fileId: string }) {
                     {file.closureReason && (
                       <Table.Row>
                         <Table.RowHeaderCell>
-                          <Text size="2" color="gray">{t("files.closureReason")}</Text>
+                          <Text size="1" color="gray">{t("files.closureReason")}</Text>
                         </Table.RowHeaderCell>
                         <Table.Cell>
                           <Text size="2">{file.closureReason}</Text>
@@ -415,7 +436,7 @@ export function FileDetailPage({ fileId }: { fileId: string }) {
                     {file.cancellationReason && (
                       <Table.Row>
                         <Table.RowHeaderCell>
-                          <Text size="2" color="gray">{t("files.cancellationReason")}</Text>
+                          <Text size="1" color="gray">{t("files.cancellationReason")}</Text>
                         </Table.RowHeaderCell>
                         <Table.Cell>
                           <Text size="2">{file.cancellationReason}</Text>
@@ -427,7 +448,6 @@ export function FileDetailPage({ fileId }: { fileId: string }) {
               </Flex>
             </Card>
 
-            {/* Attachments */}
             <Card size="3">
               <Flex direction="column" gap="3">
                 <Flex align="center" gap="2">
@@ -456,40 +476,7 @@ export function FileDetailPage({ fileId }: { fileId: string }) {
                 )}
               </Flex>
             </Card>
-          </Flex>
-        </Box>
 
-        {/* Right sidebar — Circuit + Actions (2/5) */}
-        <Box style={{ gridColumn: "span 2" }}>
-          <Flex direction="column" gap="4">
-            {/* Submit section for drafts */}
-            {showSubmitSection && (
-              <Card size="3">
-                <Flex direction="column" gap="3">
-                  <Text weight="bold" size="3">
-                    {t("files.submitSection")}
-                  </Text>
-                  <Text size="2" color="gray" as="p">
-                    {t("files.submitHint")}
-                  </Text>
-                  <Flex gap="2" wrap="wrap">
-                    <Button onClick={handleSubmit} disabled={busy}>
-                      {t("files.submit")}
-                    </Button>
-                    <Button variant="soft" asChild>
-                      <Link href={`/files/${fileId}/edit`}>{t("files.edit")}</Link>
-                    </Button>
-                  </Flex>
-                </Flex>
-              </Card>
-            )}
-
-            {/* Passage circuit */}
-            {file.status !== "DRAFT" && (
-              <PassageCircuit fileId={fileId} fileStatus={file.status} onChanged={load} />
-            )}
-
-            {/* Workflow actions */}
             {(showCancelForm || showCloseForm) && (
               <Card size="3" style={{ padding: 0, overflow: "hidden" }}>
                 <Flex

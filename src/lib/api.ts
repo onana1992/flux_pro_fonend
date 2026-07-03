@@ -13,6 +13,12 @@ import type {
   FileUpdateRequest,
   FileCloseRequest,
   FileCancelRequest,
+  FilePassageCircuit,
+  ChainInitializeRequest,
+  PassageCandidate,
+  PassageReasonRequest,
+  PassageReturnRequest,
+  PassageTransmitRequest,
   FileAttachment,
   FilePriority,
   FileStatus,
@@ -700,4 +706,65 @@ export async function downloadFileAttachment(
   anchor.download = filename;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+export async function getFilePassages(fileId: string): Promise<FilePassageCircuit> {
+  return apiFetch<FilePassageCircuit>(`/api/files/${fileId}/passages`);
+}
+
+export async function initializeFileChain(
+  fileId: string,
+  body: ChainInitializeRequest,
+): Promise<FilePassageCircuit> {
+  return apiFetch<FilePassageCircuit>(`/api/files/${fileId}/chain/initialize`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getChainCandidates(
+  fileId: string,
+  role: UserRole,
+): Promise<PassageCandidate[]> {
+  const q = new URLSearchParams({ role });
+  return apiFetch<PassageCandidate[]>(`/api/files/${fileId}/chain/candidates?${q}`);
+}
+
+export async function transmitFilePassage(
+  fileId: string,
+  passageId: string,
+  body: PassageTransmitRequest = {},
+): Promise<FilePassageCircuit> {
+  return apiFetch<FilePassageCircuit>(`/api/files/${fileId}/passages/${passageId}/transmit`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function returnFilePassage(
+  fileId: string,
+  passageId: string,
+  body: PassageReturnRequest,
+): Promise<FilePassageCircuit> {
+  return apiFetch<FilePassageCircuit>(`/api/files/${fileId}/passages/${passageId}/return`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function suspendFilePassage(
+  fileId: string,
+  passageId: string,
+  body: PassageReasonRequest,
+): Promise<FilePassageCircuit> {
+  return apiFetch<FilePassageCircuit>(`/api/files/${fileId}/passages/${passageId}/suspend`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function resumeFilePassage(fileId: string, passageId: string): Promise<FilePassageCircuit> {
+  return apiFetch<FilePassageCircuit>(`/api/files/${fileId}/passages/${passageId}/resume`, {
+    method: "POST",
+  });
 }

@@ -1,13 +1,13 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Box,
   Button,
   Card,
   Checkbox,
   Flex,
+  Grid,
   Select,
   Table,
   Text,
@@ -47,6 +47,31 @@ const ROLES: UserRole[] = [
   "READER",
   "REGIONAL_DIRECTOR",
 ];
+
+function FormField({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <Flex direction="column" gap="1" style={{ minWidth: 0 }}>
+      <Text as="label" size="2" weight="medium">
+        {label}
+        {required && (
+          <Text as="span" color="red">
+            {" "}
+            *
+          </Text>
+        )}
+      </Text>
+      {children}
+    </Flex>
+  );
+}
 
 function emptyStep(order: number, closure = false): ChainStepTemplate {
   return {
@@ -209,13 +234,10 @@ export function ChainTemplateFormPage({ mode, template }: ChainTemplateFormPageP
         <form onSubmit={handleSubmit}>
           <Flex direction="column" gap="4">
             <Card size="3">
-              <Flex direction="column" gap="3">
+              <Flex direction="column" gap="4">
                 <Text weight="bold">{t("admin.chainTemplates.headerSection")}</Text>
-                <Flex gap="3" wrap="wrap">
-                  <Box style={{ flex: "1 1 200px" }}>
-                    <Text as="label" size="2" weight="medium" mb="1">
-                      {t("admin.chainTemplates.code")}
-                    </Text>
+                <Grid columns={{ initial: "1", sm: "1fr 2fr" }} gap="3">
+                  <FormField label={t("admin.chainTemplates.code")} required>
                     <TextField.Root
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
@@ -223,31 +245,25 @@ export function ChainTemplateFormPage({ mode, template }: ChainTemplateFormPageP
                       required
                       maxLength={10}
                     />
-                  </Box>
-                  <Box style={{ flex: "2 1 280px" }}>
-                    <Text as="label" size="2" weight="medium" mb="1">
-                      {t("admin.chainTemplates.name")}
-                    </Text>
+                  </FormField>
+                  <FormField label={t("admin.chainTemplates.name")} required>
                     <TextField.Root value={name} onChange={(e) => setName(e.target.value)} required />
-                  </Box>
-                </Flex>
-                <Box>
-                  <Text as="label" size="2" weight="medium" mb="1">
-                    {t("admin.chainTemplates.descriptionField")}
-                  </Text>
+                  </FormField>
+                </Grid>
+                <FormField label={t("admin.chainTemplates.descriptionField")}>
                   <TextArea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={2}
                   />
-                </Box>
-                <Flex gap="3" wrap="wrap">
-                  <Box style={{ flex: "1 1 200px" }}>
-                    <Text as="label" size="2" weight="medium" mb="1">
-                      {t("admin.chainTemplates.fileTypeCode")}
-                    </Text>
-                    <Select.Root value={fileTypeCode || "none"} onValueChange={(v) => setFileTypeCode(v === "none" ? "" : v)}>
-                      <Select.Trigger />
+                </FormField>
+                <Grid columns={{ initial: "1", sm: "3" }} gap="3">
+                  <FormField label={t("admin.chainTemplates.fileTypeCode")}>
+                    <Select.Root
+                      value={fileTypeCode || "none"}
+                      onValueChange={(v) => setFileTypeCode(v === "none" ? "" : v)}
+                    >
+                      <Select.Trigger style={{ width: "100%" }} />
                       <Select.Content>
                         <Select.Item value="none">—</Select.Item>
                         {fileTypes.map((ft) => (
@@ -257,11 +273,8 @@ export function ChainTemplateFormPage({ mode, template }: ChainTemplateFormPageP
                         ))}
                       </Select.Content>
                     </Select.Root>
-                  </Box>
-                  <Box style={{ flex: "1 1 140px" }}>
-                    <Text as="label" size="2" weight="medium" mb="1">
-                      {t("admin.chainTemplates.totalDelayDays")}
-                    </Text>
+                  </FormField>
+                  <FormField label={t("admin.chainTemplates.totalDelayDays")} required>
                     <TextField.Root
                       type="number"
                       min={0}
@@ -269,20 +282,17 @@ export function ChainTemplateFormPage({ mode, template }: ChainTemplateFormPageP
                       onChange={(e) => setTotalDelayDays(Number(e.target.value))}
                       required
                     />
-                  </Box>
-                  <Box style={{ flex: "1 1 180px" }}>
-                    <Text as="label" size="2" weight="medium" mb="1">
-                      {t("admin.chainTemplates.delayUnit")}
-                    </Text>
+                  </FormField>
+                  <FormField label={t("admin.chainTemplates.delayUnit")}>
                     <Select.Root value={delayUnit} onValueChange={(v) => setDelayUnit(v as DelayUnit)}>
-                      <Select.Trigger />
+                      <Select.Trigger style={{ width: "100%" }} />
                       <Select.Content>
                         <Select.Item value="WORKING_DAYS">{t("admin.chainTemplates.workingDays")}</Select.Item>
                         <Select.Item value="WORKING_HOURS">{t("admin.chainTemplates.workingHours")}</Select.Item>
                       </Select.Content>
                     </Select.Root>
-                  </Box>
-                </Flex>
+                  </FormField>
+                </Grid>
                 <Text size="1" color="gray">
                   {t("admin.chainTemplates.delaySumHint", {
                     sum: stepSum.toFixed(1),

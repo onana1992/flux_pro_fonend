@@ -311,3 +311,95 @@ export interface FileCloseRequest {
 export interface FileCancelRequest {
   reason: string;
 }
+
+export type PassageStatus =
+  | "PENDING"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "RETURNED"
+  | "SUSPENDED"
+  | "SKIPPED";
+
+export interface PassageStep {
+  id: string;
+  stepOrder: number;
+  label: string;
+  expectedAction?: string | null;
+  optional?: boolean;
+  closureStep: boolean;
+  responsibleRole?: UserRole | null;
+  delayValue?: number;
+  delayUnit?: DelayUnit | null;
+  status: PassageStatus;
+  responsibleUserId?: string | null;
+  responsibleName?: string | null;
+  responsibleEmail?: string | null;
+  responsiblePhone?: string | null;
+  responsibleJobTitle?: string | null;
+  responsibleOrganizationCode?: string | null;
+  responsibleOrganizationName?: string | null;
+  receivedAt?: string | null;
+  transmittedAt?: string | null;
+  dueAt?: string | null;
+  consumedHours?: number | null;
+  workingDaysHeld?: number | null;
+  overdue: boolean;
+  comment?: string | null;
+  internalComment?: string | null;
+  returnReason?: string | null;
+  suspendedAt?: string | null;
+  resumedAt?: string | null;
+}
+
+export interface CurrentHolder {
+  userId: string;
+  fullName: string;
+  organizationCode: string;
+  stepLabel: string;
+  stepOrder: number;
+  since: string;
+  workingDaysHeld: number;
+  overdue: boolean;
+  dueAt?: string | null;
+}
+
+export interface FilePassageCircuit {
+  templateCode?: string | null;
+  templateName?: string | null;
+  currentStepOrder?: number | null;
+  currentHolder?: CurrentHolder | null;
+  passages: PassageStep[];
+}
+
+export interface PassageCandidate {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: UserRole;
+  organizationCode: string;
+  organizationName: string;
+}
+
+export interface ChainStepAssignmentRequest {
+  chainStepTemplateId: string;
+  responsibleUserId: string;
+}
+
+export interface ChainInitializeRequest {
+  chainTemplateId: string;
+  assignments: ChainStepAssignmentRequest[];
+}
+
+export interface PassageTransmitRequest {
+  comment?: string;
+  nextResponsibleUserId?: string;
+}
+
+export interface PassageReturnRequest {
+  reason: string;
+}
+
+export interface PassageReasonRequest {
+  reason: string;
+}

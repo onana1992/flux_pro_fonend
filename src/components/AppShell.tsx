@@ -64,6 +64,24 @@ const MAIN_SECTION: NavSection = {
   ],
 };
 
+const REFERENTIALS_SECTION: NavSection = {
+  labelKey: "nav.referentials",
+  items: [
+    {
+      href: "/admin/file-types",
+      labelKey: "nav.fileTypes",
+      icon: <FileIcon />,
+      permission: "FILE_TYPES:READ",
+    },
+    {
+      href: "/admin/chain-templates",
+      labelKey: "nav.chainTemplates",
+      icon: <LayersIcon />,
+      permission: "CHAIN_TEMPLATES:READ",
+    },
+  ],
+};
+
 const ORG_SECTION: NavSection = {
   labelKey: "nav.organization",
   items: [
@@ -83,14 +101,12 @@ const ORG_SECTION: NavSection = {
   ],
 };
 
-const ADMIN_SECTION: NavSection = {
-  labelKey: "nav.administration",
+const SECURITY_SECTION: NavSection = {
+  labelKey: "nav.security",
   items: [
     { href: "/admin/users", labelKey: "nav.users", icon: <PersonIcon />, userRead: true },
     { href: "/admin/roles", labelKey: "nav.roles", icon: <IdCardIcon />, permission: "ROLES:READ" },
     { href: "/admin/permissions", labelKey: "nav.permissions", icon: <LockClosedIcon />, permission: "PERMISSIONS:READ" },
-    { href: "/admin/chain-templates", labelKey: "nav.chainTemplates", icon: <LayersIcon />, permission: "CHAIN_TEMPLATES:READ" },
-    { href: "/admin/file-types", labelKey: "nav.fileTypes", icon: <FileIcon />, permission: "FILE_TYPES:READ" },
     { href: "/admin/audit", labelKey: "nav.loginAudit", icon: <ReaderIcon />, permission: "LOGIN_AUDIT:READ" },
   ],
 };
@@ -199,14 +215,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     const sections: NavSection[] = [MAIN_SECTION];
 
+    const referentialItems = REFERENTIALS_SECTION.items.filter(canSeeItem);
+    if (referentialItems.length > 0) {
+      sections.push({ ...REFERENTIALS_SECTION, items: referentialItems });
+    }
+
     const orgItems = ORG_SECTION.items.filter(canSeeItem);
     if (orgItems.length > 0) {
       sections.push({ ...ORG_SECTION, items: orgItems });
     }
 
-    const adminItems = ADMIN_SECTION.items.filter(canSeeItem);
-    if (adminItems.length > 0) {
-      sections.push({ ...ADMIN_SECTION, items: adminItems });
+    const securityItems = SECURITY_SECTION.items.filter(canSeeItem);
+    if (securityItems.length > 0) {
+      sections.push({ ...SECURITY_SECTION, items: securityItems });
     }
 
     return sections;

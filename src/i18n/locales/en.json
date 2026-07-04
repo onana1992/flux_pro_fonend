@@ -40,7 +40,8 @@
     "loginAudit": "Login audit",
     "chainTemplates": "Chain templates",
     "fileTypes": "File types",
-    "files": "Files"
+    "files": "Files",
+    "alertTypes": "Alert types"
   },
   "header": {
     "menu": "Menu",
@@ -48,6 +49,24 @@
     "darkMode": "Dark mode",
     "lightMode": "Light mode",
     "notifications": "Notifications"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "History of your in-app alerts.",
+    "unreadCount": "{{count}} unread",
+    "markAllRead": "Mark all as read",
+    "empty": "No notifications.",
+    "unreadOnly": "Unread only",
+    "all": "All",
+    "viewAll": "View all",
+    "loading": "Loading notifications…",
+    "markRead": "Mark as read",
+    "statusValues": {
+      "PENDING": "Pending",
+      "SENT": "Sent",
+      "FAILED": "Failed",
+      "READ": "Read"
+    }
   },
   "profile": {
     "editProfile": "Edit profile",
@@ -320,6 +339,45 @@
         "closure": "Exactly one closure step is allowed.",
         "closureDelay": "Closure step must have zero delay.",
         "delaySum": "Sum of delays exceeds total delay."
+      },
+      "tabs": {
+        "alerts": "Alerts"
+      },
+      "alerts": {
+        "title": "Alert rules",
+        "description": "Thresholds configured for this template only.",
+        "empty": "No alert rules configured for this template.",
+        "applyDefaultProfile": "Apply default profile",
+        "applyDefaultProfileConfirm": "Copy the default matrix (CDC §10.2) onto this template?",
+        "applyDefaultProfileSuccess": "{{count}} rule(s) added from the default profile.",
+        "addRule": "New rule",
+        "editRule": "Edit rule",
+        "threshold": "Threshold",
+        "thresholdPlaceholder": "e.g. J_MINUS_2, J_PLUS_0…",
+        "step": "Step",
+        "allSteps": "All steps",
+        "alertType": "Alert type",
+        "escalationLevel": "Escalation level",
+        "targetMode": "Recipient mode",
+        "targetModeCurrentResponsible": "Current step holder",
+        "targetModeRole": "Specific role",
+        "targetRole": "Target role",
+        "offsetValue": "Offset",
+        "offsetUnit": "Unit",
+        "priorityScope": "Priority scope",
+        "priorityScopeAll": "All",
+        "priorityScopeUrgentPlus": "Urgent+",
+        "status": "Status",
+        "actions": "Actions",
+        "save": "Save",
+        "saving": "Saving…",
+        "deactivate": "Deactivate",
+        "activate": "Reactivate",
+        "delete": "Delete",
+        "deleteConfirm": "Permanently delete this alert rule?",
+        "saveSuccess": "Alert rule saved.",
+        "saveFailed": "Could not save alert rule.",
+        "targetRoleRequired": "Target role is required in \"Specific role\" mode."
       }
     },
     "fileTypes": {
@@ -352,6 +410,42 @@
       "deleteConfirm": "Permanently delete type {{code}}?",
       "deleteSuccess": "File type deleted.",
       "deleteFailed": "Could not delete file type."
+    },
+    "alertTypes": {
+      "title": "Alert types",
+      "description": "Administrable catalogue of alert types (reminder, overdue, escalation…).",
+      "loading": "Loading alert types…",
+      "empty": "No alert types",
+      "create": "New type",
+      "createTitle": "New alert type",
+      "createDescription": "Create a reusable alert type for alert rules.",
+      "editTitle": "Edit alert type",
+      "editDescription": "Update the type metadata.",
+      "edit": "Edit",
+      "save": "Save",
+      "saving": "Saving…",
+      "code": "Code",
+      "label": "Label",
+      "descriptionField": "Description",
+      "emailTemplateCode": "Email template",
+      "emailTemplateGeneric": "Generic",
+      "origin": "Origin",
+      "systemDefined": "System",
+      "custom": "Custom",
+      "status": "Status",
+      "actions": "Actions",
+      "deactivate": "Deactivate",
+      "delete": "Delete",
+      "createSuccess": "Alert type created.",
+      "updateSuccess": "Alert type updated.",
+      "saveFailed": "Could not save alert type.",
+      "deactivateConfirm": "Deactivate type {{code}}?",
+      "deactivateSuccess": "Type deactivated.",
+      "deleteConfirm": "Permanently delete type {{code}}?",
+      "deleteSuccess": "Type deleted.",
+      "deleteFailed": "Could not delete type.",
+      "cannotDeleteSystemDefined": "A system-defined type cannot be deleted.",
+      "cannotDeleteInUse": "This type is used by at least one alert rule."
     },
     "audit": {
       "title": "Login audit log",
@@ -523,6 +617,14 @@
     "responseReady": "Response document attached",
     "download": "Download",
     "noAttachments": "No attachments for this file.",
+    "tabs": {
+      "alerts": "Alerts"
+    },
+    "alertHistory": {
+      "title": "Alert history",
+      "empty": "No alerts generated for this file.",
+      "loading": "Loading alerts…"
+    },
     "createdAt": "Created",
     "updatedAt": "Updated",
     "closedAt": "Closed",

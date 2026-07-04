@@ -16,6 +16,7 @@ import {
 } from "@radix-ui/themes";
 import {
   ArrowLeftIcon,
+  BellIcon,
   CheckCircledIcon,
   CrossCircledIcon,
   DownloadIcon,
@@ -34,11 +35,12 @@ import {
   closeFile,
   downloadFileAttachment,
   getFile,
+  listFileAlerts,
   submitFile,
   uploadFileAttachment,
 } from "@/lib/api";
 import { hasPermission } from "@/lib/auth-storage";
-import type { FileAttachment, FileDetail, FileStatus } from "@/lib/types";
+import type { AlertResponse, FileAttachment, FileDetail, FileStatus } from "@/lib/types";
 import { LoadingBlock, StatusAlert } from "@/components/ui/shared";
 
 function statusColor(status: FileStatus): "gray" | "blue" | "green" | "orange" | "red" {
@@ -131,6 +133,98 @@ function AttachmentCard({
         <DownloadIcon />
       </Button>
     </Flex>
+  );
+}
+
+function alertStatusColor(status: AlertResponse["status"]): "gray" | "blue" | "green" | "red" {
+  switch (status) {
+    case "SENT":
+      return "blue";
+    case "READ":
+      return "green";
+    case "FAILED":
+      return "red";
+    default:
+      return "gray";
+  }
+}
+
+function AlertHistoryCard({ fileId }: { fileId: string }) {
+  const { t } = useTranslation();
+  const [alerts, setAlerts] = useState<AlertResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    listFileAlerts(fileId)
+      .then((data) => {
+        if (!cancelled) setAlerts(data);
+      })
+      .catch(() => {
+        // historique non bloquant : une erreur ne doit pas casser la fiche dossier
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fileId]);
+
+  return (
+    <Card size="3">
+      <Flex direction="column" gap="3">
+        <Flex align="center" gap="2">
+          <BellIcon width={16} height={16} color="var(--gray-11)" />
+          <Text weight="bold" size="3">
+            {t("files.alertHistory.title")}
+          </Text>
+          {alerts.length > 0 && (
+            <Badge variant="soft" color="gray" size="1">
+              {alerts.length}
+            </Badge>
+          )}
+        </Flex>
+        {loading ? (
+          <Text size="2" color="gray">
+            {t("files.alertHistory.loading")}
+          </Text>
+        ) : alerts.length === 0 ? (
+          <Text size="2" color="gray">
+            {t("files.alertHistory.empty")}
+          </Text>
+        ) : (
+          <Flex direction="column" gap="2">
+            {alerts.map((alert) => (
+              <Flex
+                key={alert.id}
+                direction="column"
+                gap="1"
+                p="2"
+                style={{
+                  borderRadius: "var(--radius-2)",
+                  background: "var(--gray-a2)",
+                  border: "1px solid var(--gray-a4)",
+                }}
+              >
+                <Flex justify="between" align="center" gap="2" wrap="wrap">
+                  <Text size="2" weight="medium">
+                    {alert.message}
+                  </Text>
+                  <Badge size="1" color={alertStatusColor(alert.status)} variant="soft">
+                    {t(`notifications.statusValues.${alert.status}`)}
+                  </Badge>
+                </Flex>
+                <Text size="1" color="gray">
+                  {alert.channel} · {formatDateTime(alert.sentAt)}
+                </Text>
+              </Flex>
+            ))}
+          </Flex>
+        )}
+      </Flex>
+    </Card>
   );
 }
 
@@ -476,6 +570,8 @@ export function FileDetailPage({ fileId }: { fileId: string }) {
                 )}
               </Flex>
             </Card>
+
+            <AlertHistoryCard fileId={fileId} />
 
             {(showCancelForm || showCloseForm) && (
               <Card size="3" style={{ padding: 0, overflow: "hidden" }}>

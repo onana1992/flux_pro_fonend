@@ -40,7 +40,8 @@
     "loginAudit": "Journal des connexions",
     "chainTemplates": "Templates de chaîne",
     "fileTypes": "Types de dossier",
-    "files": "Dossiers"
+    "files": "Dossiers",
+    "alertTypes": "Types d'alerte"
   },
   "header": {
     "menu": "Menu",
@@ -48,6 +49,24 @@
     "darkMode": "Mode sombre",
     "lightMode": "Mode clair",
     "notifications": "Notifications"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Historique de vos alertes in-app.",
+    "unreadCount": "{{count}} non lue(s)",
+    "markAllRead": "Tout marquer comme lu",
+    "empty": "Aucune notification.",
+    "unreadOnly": "Non lues uniquement",
+    "all": "Toutes",
+    "viewAll": "Voir toutes",
+    "loading": "Chargement des notifications…",
+    "markRead": "Marquer comme lu",
+    "statusValues": {
+      "PENDING": "En attente",
+      "SENT": "Envoyée",
+      "FAILED": "Échec",
+      "READ": "Lue"
+    }
   },
   "profile": {
     "editProfile": "Modifier le profil",
@@ -320,6 +339,45 @@
         "closure": "Un seul maillon de clôture est autorisé.",
         "closureDelay": "Le maillon de clôture doit avoir un délai de 0.",
         "delaySum": "La somme des délais dépasse le délai total."
+      },
+      "tabs": {
+        "alerts": "Alertes"
+      },
+      "alerts": {
+        "title": "Règles d'alerte",
+        "description": "Seuils configurés pour ce template uniquement.",
+        "empty": "Aucune règle d'alerte configurée pour ce template.",
+        "applyDefaultProfile": "Appliquer le profil par défaut",
+        "applyDefaultProfileConfirm": "Copier la matrice par défaut (CDC §10.2) sur ce template ?",
+        "applyDefaultProfileSuccess": "{{count}} règle(s) ajoutée(s) à partir du profil par défaut.",
+        "addRule": "Nouvelle règle",
+        "editRule": "Modifier la règle",
+        "threshold": "Seuil",
+        "thresholdPlaceholder": "ex. J_MINUS_2, J_PLUS_0…",
+        "step": "Maillon",
+        "allSteps": "Tous les maillons",
+        "alertType": "Type d'alerte",
+        "escalationLevel": "Niveau d'escalade",
+        "targetMode": "Mode de destinataire",
+        "targetModeCurrentResponsible": "Responsable actuel du maillon",
+        "targetModeRole": "Rôle précis",
+        "targetRole": "Rôle destinataire",
+        "offsetValue": "Décalage",
+        "offsetUnit": "Unité",
+        "priorityScope": "Portée priorité",
+        "priorityScopeAll": "Toutes",
+        "priorityScopeUrgentPlus": "Urgent+",
+        "status": "Statut",
+        "actions": "Actions",
+        "save": "Enregistrer",
+        "saving": "Enregistrement…",
+        "deactivate": "Désactiver",
+        "activate": "Réactiver",
+        "delete": "Supprimer",
+        "deleteConfirm": "Supprimer définitivement cette règle d'alerte ?",
+        "saveSuccess": "Règle d'alerte enregistrée.",
+        "saveFailed": "Impossible d'enregistrer la règle d'alerte.",
+        "targetRoleRequired": "Le rôle destinataire est requis en mode « Rôle précis »."
       }
     },
     "fileTypes": {
@@ -352,6 +410,42 @@
       "deleteConfirm": "Supprimer définitivement le type {{code}} ?",
       "deleteSuccess": "Type supprimé.",
       "deleteFailed": "Impossible de supprimer le type."
+    },
+    "alertTypes": {
+      "title": "Types d'alerte",
+      "description": "Catalogue administrable des types d'alerte (rappel, retard, escalade…).",
+      "loading": "Chargement des types d'alerte…",
+      "empty": "Aucun type d'alerte",
+      "create": "Nouveau type",
+      "createTitle": "Nouveau type d'alerte",
+      "createDescription": "Créez un type d'alerte réutilisable dans les règles.",
+      "editTitle": "Modifier le type d'alerte",
+      "editDescription": "Mettez à jour les métadonnées du type.",
+      "edit": "Modifier",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "code": "Code",
+      "label": "Libellé",
+      "descriptionField": "Description",
+      "emailTemplateCode": "Gabarit email",
+      "emailTemplateGeneric": "Générique",
+      "origin": "Origine",
+      "systemDefined": "Système",
+      "custom": "Personnalisé",
+      "status": "Statut",
+      "actions": "Actions",
+      "deactivate": "Désactiver",
+      "delete": "Supprimer",
+      "createSuccess": "Type d'alerte créé.",
+      "updateSuccess": "Type d'alerte mis à jour.",
+      "saveFailed": "Impossible d'enregistrer le type d'alerte.",
+      "deactivateConfirm": "Désactiver le type {{code}} ?",
+      "deactivateSuccess": "Type désactivé.",
+      "deleteConfirm": "Supprimer définitivement le type {{code}} ?",
+      "deleteSuccess": "Type supprimé.",
+      "deleteFailed": "Impossible de supprimer le type.",
+      "cannotDeleteSystemDefined": "Un type système ne peut pas être supprimé.",
+      "cannotDeleteInUse": "Ce type est utilisé par au moins une règle d'alerte."
     },
     "audit": {
       "title": "Journal des connexions",
@@ -523,6 +617,14 @@
     "responseReady": "Pièce de réponse jointe",
     "download": "Télécharger",
     "noAttachments": "Aucune pièce jointe pour ce dossier.",
+    "tabs": {
+      "alerts": "Alertes"
+    },
+    "alertHistory": {
+      "title": "Historique des alertes",
+      "empty": "Aucune alerte générée pour ce dossier.",
+      "loading": "Chargement des alertes…"
+    },
     "createdAt": "Créé le",
     "updatedAt": "Modifié le",
     "closedAt": "Clôturé le",

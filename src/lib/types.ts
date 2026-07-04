@@ -403,3 +403,78 @@ export interface PassageReturnRequest {
 export interface PassageReasonRequest {
   reason: string;
 }
+
+export type AlertChannel = "IN_APP" | "EMAIL" | "SMS";
+
+export type AlertStatus = "PENDING" | "SENT" | "FAILED" | "READ";
+
+export type AlertTargetMode = "CURRENT_RESPONSIBLE" | "ROLE";
+
+export interface AlertType {
+  id: string;
+  code: string;
+  label: string;
+  description?: string | null;
+  emailTemplateCode?: string | null;
+  systemDefined: boolean;
+  active: boolean;
+}
+
+export interface AlertTypeRequest {
+  code: string;
+  label: string;
+  description?: string;
+  emailTemplateCode?: string;
+  active: boolean;
+}
+
+export interface AlertRule {
+  id: string;
+  chainTemplateId: string;
+  chainStepTemplateId?: string | null;
+  chainStepTemplateLabel?: string | null;
+  thresholdCode: string;
+  offsetValue: number;
+  offsetUnit: DelayUnit;
+  alertTypeId: string;
+  alertTypeCode: string;
+  alertTypeLabel: string;
+  escalationLevel?: number | null;
+  targetMode: AlertTargetMode;
+  targetRole?: UserRole | null;
+  priorityScope?: string | null;
+  active: boolean;
+}
+
+export interface AlertRuleRequest {
+  chainStepTemplateId?: string;
+  thresholdCode: string;
+  offsetValue: number;
+  offsetUnit: DelayUnit;
+  alertTypeId: string;
+  escalationLevel?: number;
+  targetMode: AlertTargetMode;
+  targetRole?: UserRole;
+  priorityScope?: string;
+  active: boolean;
+}
+
+export interface AlertResponse {
+  id: string;
+  fileId?: string | null;
+  fileReferenceNumber?: string | null;
+  filePassageId?: string | null;
+  stepLabel?: string | null;
+  alertTypeCode: string;
+  alertTypeLabel: string;
+  escalationLevel?: number | null;
+  channel: AlertChannel;
+  status: AlertStatus;
+  sentAt?: string | null;
+  readAt?: string | null;
+  message: string;
+}
+
+export interface UnreadCountResponse {
+  unreadCount: number;
+}

@@ -31,6 +31,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "./AuthProvider";
 import { canAccessAdmin, canReadUsers, canSeePermission, isSuperAdmin } from "@/lib/auth-storage";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { NotificationBell } from "./NotificationBell";
 import { useThemeAppearance } from "./ThemeToggle";
 import { UserProfileMenu } from "./UserProfileMenu";
 
@@ -78,6 +79,12 @@ const REFERENTIALS_SECTION: NavSection = {
       labelKey: "nav.chainTemplates",
       icon: <LayersIcon />,
       permission: "CHAIN_TEMPLATES:READ",
+    },
+    {
+      href: "/admin/alert-types",
+      labelKey: "nav.alertTypes",
+      icon: <BellIcon />,
+      permission: "ALERT_TYPES:READ",
     },
   ],
 };
@@ -446,10 +453,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               )}
             </button>
 
-            <button type="button" className="header-icon-btn" aria-label={t("header.notifications")}>
-              <BellIcon width={20} height={20} />
-              <span className="header-icon-btn__badge" />
-            </button>
+            <NotificationBell />
 
             {user && <UserProfileMenu user={user} onLogout={handleLogout} />}
           </Flex>

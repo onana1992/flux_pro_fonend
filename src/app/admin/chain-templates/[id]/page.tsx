@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Badge, Box, Button, Card, Flex, Text } from "@radix-ui/themes";
 import { ChainCircuitWizard } from "@/components/ChainCircuitWizard";
+import { AlertRulesPanel } from "@/components/AlertRulesPanel";
 import { useTranslation } from "react-i18next";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -35,6 +36,9 @@ export default function ChainTemplateDetailPage() {
   const canUpdate = hasPermission(user, "CHAIN_TEMPLATES:UPDATE");
   const canCreate = hasPermission(user, "CHAIN_TEMPLATES:CREATE");
   const canDelete = hasPermission(user, "CHAIN_TEMPLATES:DELETE");
+  const canReadAlertRules = hasPermission(user, "ALERT_RULES:READ");
+  const canWriteAlertRules = hasPermission(user, "ALERT_RULES:CREATE") || hasPermission(user, "ALERT_RULES:UPDATE");
+  const canDeleteAlertRules = hasPermission(user, "ALERT_RULES:DELETE");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -168,6 +172,18 @@ export default function ChainTemplateDetailPage() {
                 <ChainCircuitWizard steps={template.steps} />
               </Card>
             </Flex>
+
+            {canReadAlertRules && (
+              <Box mt="4">
+                <AlertRulesPanel
+                  chainTemplateId={id}
+                  steps={template.steps}
+                  canRead={canReadAlertRules}
+                  canWrite={canWriteAlertRules}
+                  canDelete={canDeleteAlertRules}
+                />
+              </Box>
+            )}
           </>
         )}
       </AppShell>

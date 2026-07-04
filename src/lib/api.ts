@@ -37,6 +37,12 @@ import type {
   UserRole,
   Role,
   Permission,
+  AlertType,
+  AlertTypeRequest,
+  AlertRule,
+  AlertRuleRequest,
+  AlertResponse,
+  UnreadCountResponse,
 } from "./types";
 import {
   clearAuth,
@@ -767,4 +773,130 @@ export async function resumeFilePassage(fileId: string, passageId: string): Prom
   return apiFetch<FilePassageCircuit>(`/api/files/${fileId}/passages/${passageId}/resume`, {
     method: "POST",
   });
+}
+
+export async function getActiveAlertTypes(): Promise<AlertType[]> {
+  return apiFetch<AlertType[]>("/api/alert-types");
+}
+
+export async function getAllAlertTypes(): Promise<AlertType[]> {
+  return apiFetch<AlertType[]>("/api/admin/alert-types");
+}
+
+export async function getAlertType(id: string): Promise<AlertType> {
+  return apiFetch<AlertType>(`/api/admin/alert-types/${id}`);
+}
+
+export async function createAlertType(body: AlertTypeRequest): Promise<AlertType> {
+  return apiFetch<AlertType>("/api/admin/alert-types", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateAlertType(id: string, body: AlertTypeRequest): Promise<AlertType> {
+  return apiFetch<AlertType>(`/api/admin/alert-types/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function activateAlertType(id: string): Promise<AlertType> {
+  return apiFetch<AlertType>(`/api/admin/alert-types/${id}/activate`, { method: "PATCH" });
+}
+
+export async function deactivateAlertType(id: string): Promise<AlertType> {
+  return apiFetch<AlertType>(`/api/admin/alert-types/${id}/deactivate`, { method: "PATCH" });
+}
+
+export async function deleteAlertType(id: string): Promise<void> {
+  return apiFetch<void>(`/api/admin/alert-types/${id}`, { method: "DELETE" });
+}
+
+export async function listAlertRules(chainTemplateId: string): Promise<AlertRule[]> {
+  return apiFetch<AlertRule[]>(`/api/admin/chain-templates/${chainTemplateId}/alert-rules`);
+}
+
+export async function getAlertRule(chainTemplateId: string, ruleId: string): Promise<AlertRule> {
+  return apiFetch<AlertRule>(`/api/admin/chain-templates/${chainTemplateId}/alert-rules/${ruleId}`);
+}
+
+export async function createAlertRule(
+  chainTemplateId: string,
+  body: AlertRuleRequest,
+): Promise<AlertRule> {
+  return apiFetch<AlertRule>(`/api/admin/chain-templates/${chainTemplateId}/alert-rules`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateAlertRule(
+  chainTemplateId: string,
+  ruleId: string,
+  body: AlertRuleRequest,
+): Promise<AlertRule> {
+  return apiFetch<AlertRule>(`/api/admin/chain-templates/${chainTemplateId}/alert-rules/${ruleId}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function activateAlertRule(chainTemplateId: string, ruleId: string): Promise<AlertRule> {
+  return apiFetch<AlertRule>(
+    `/api/admin/chain-templates/${chainTemplateId}/alert-rules/${ruleId}/activate`,
+    { method: "PATCH" },
+  );
+}
+
+export async function deactivateAlertRule(chainTemplateId: string, ruleId: string): Promise<AlertRule> {
+  return apiFetch<AlertRule>(
+    `/api/admin/chain-templates/${chainTemplateId}/alert-rules/${ruleId}/deactivate`,
+    { method: "PATCH" },
+  );
+}
+
+export async function deleteAlertRule(chainTemplateId: string, ruleId: string): Promise<void> {
+  return apiFetch<void>(`/api/admin/chain-templates/${chainTemplateId}/alert-rules/${ruleId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function applyDefaultAlertProfile(
+  chainTemplateId: string,
+  overwriteExisting = false,
+): Promise<AlertRule[]> {
+  const q = new URLSearchParams({ overwriteExisting: String(overwriteExisting) });
+  return apiFetch<AlertRule[]>(
+    `/api/admin/chain-templates/${chainTemplateId}/alert-rules/apply-default-profile?${q}`,
+    { method: "POST" },
+  );
+}
+
+export async function listNotifications(params: {
+  unreadOnly?: boolean;
+  page?: number;
+  size?: number;
+}): Promise<PageResponse<AlertResponse>> {
+  const q = new URLSearchParams();
+  q.set("unreadOnly", String(params.unreadOnly ?? false));
+  q.set("page", String(params.page ?? 0));
+  q.set("size", String(params.size ?? 20));
+  return apiFetch<PageResponse<AlertResponse>>(`/api/notifications?${q}`);
+}
+
+export async function getUnreadNotificationCount(): Promise<UnreadCountResponse> {
+  return apiFetch<UnreadCountResponse>("/api/notifications/unread-count");
+}
+
+export async function markNotificationRead(id: string): Promise<AlertResponse> {
+  return apiFetch<AlertResponse>(`/api/notifications/${id}/read`, { method: "PATCH" });
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  return apiFetch<void>("/api/notifications/read-all", { method: "PATCH" });
+}
+
+export async function listFileAlerts(fileId: string): Promise<AlertResponse[]> {
+  return apiFetch<AlertResponse[]>(`/api/files/${fileId}/alerts`);
 }

@@ -37,11 +37,12 @@
     "users": "Users",
     "roles": "Roles",
     "permissions": "Permissions",
-    "loginAudit": "Login audit",
+    "loginAudit": "Audit log",
     "chainTemplates": "Chain templates",
     "fileTypes": "File types",
     "files": "Files",
-    "alertTypes": "Alert types"
+    "alertTypes": "Alert types",
+    "reports": "Reports"
   },
   "header": {
     "menu": "Menu",
@@ -95,25 +96,7 @@
     "hello": "Hello, {{name}}",
     "overview": "FluxPro overview — MINTP",
     "organisation": "Organisation",
-    "pilotAgents": "Pilot agents",
     "activeFiles": "Active files",
-    "yourRole": "Your role",
-    "mintpRef": "MINTP registry",
-    "passationChain": "Routing chain",
-    "sprint2": "Sprint 2",
-    "session8h": "Session 8 h",
-    "filesByMonth": "Files by month",
-    "filesByMonthSub": "Estimated volume — available in Sprint 2",
-    "annualTotal": "Annual total",
-    "monthlyAvg": "Monthly avg.",
-    "peakMay": "Peak (May)",
-    "treatmentGoal": "Processing target",
-    "treatmentGoalSub": "Average routing time per step",
-    "goal": "target",
-    "trendVsLastMonth": "+10% vs last month",
-    "target": "Target",
-    "average": "Average",
-    "today": "Today",
     "myProfile": "My profile",
     "sessionInfo": "Session information",
     "direction": "Department",
@@ -122,20 +105,97 @@
     "jwtSession": "JWT session",
     "quickAccess": "Quick access",
     "quickAccessSub": "Administration and configuration",
-    "months": {
-      "jan": "Jan",
-      "feb": "Feb",
-      "mar": "Mar",
-      "apr": "Apr",
-      "may": "May",
-      "jun": "Jun",
-      "jul": "Jul",
-      "aug": "Aug",
-      "sep": "Sep",
-      "oct": "Oct",
-      "nov": "Nov",
-      "dec": "Dec"
+    "scope": {
+      "SELF": "Personal scope",
+      "SUBTREE": "Scope: team",
+      "REGIONAL": "Regional scope",
+      "GLOBAL": "National scope"
+    },
+    "stats": {
+      "active": "Active files",
+      "activeSub": "Currently being processed",
+      "newThisMonth": "{{count}} new this month",
+      "overdue": "Overdue files",
+      "overdueSub": "Deadline exceeded",
+      "attention": "Needs attention",
+      "onTrack": "No delays",
+      "closedThisMonth": "Closed this month",
+      "closedThisMonthSub": "Since the 1st of the month"
+    },
+    "myActivity": {
+      "title": "My activity",
+      "sub": "Steps you are currently responsible for, all statuses",
+      "active": "Active",
+      "overdue": "Overdue",
+      "transmitted": "Transmitted (30d)",
+      "empty": "No active file assigned to you.",
+      "late": "Overdue",
+      "onTime": "On time",
+      "dueOn": "due {{date}}"
+    },
+    "workload": {
+      "title": "Workload by agent",
+      "sub": "Active files per agent within your scope",
+      "agent": "Agent",
+      "organization": "Organisation",
+      "active": "Active",
+      "overdue": "Overdue",
+      "empty": "No active workload in this scope."
+    },
+    "overdueFiles": {
+      "title": "Top overdue files",
+      "sub": "Most overdue files within your scope",
+      "reference": "File",
+      "step": "Step",
+      "responsible": "Responsible",
+      "dueAt": "Due date",
+      "daysLate": "Delay",
+      "empty": "No overdue file. Well done!"
+    },
+    "delayByType": {
+      "title": "Average delay by file type",
+      "sub": "Average actual delay vs template target — last 30 days",
+      "days": "d",
+      "closedCount": "{{count}} closed file(s)",
+      "empty": "No closed file in this period."
+    },
+    "complianceRanking": {
+      "title": "Department ranking",
+      "sub": "Deadline compliance rate — last 90 days",
+      "organization": "Organisation",
+      "closed": "Closed",
+      "compliant": "Compliant",
+      "rate": "Rate",
+      "empty": "No closed file in this period."
+    },
+    "complianceGauge": {
+      "title": "Deadline compliance rate",
+      "sub": "Summary view of your scope",
+      "label": "compliance"
     }
+  },
+  "reports": {
+    "title": "Reports and exports",
+    "description": "Export dashboard data as CSV.",
+    "datasetLabel": "Dataset",
+    "dataset": {
+      "overdue-files": "Overdue files",
+      "workload": "Workload by agent",
+      "delay-by-type": "Average delay by type",
+      "compliance-ranking": "Department ranking"
+    },
+    "datasetHint": {
+      "overdue-files": "List of overdue files within your scope.",
+      "workload": "Active and overdue file counts per agent.",
+      "delay-by-type": "Average actual delay compared to target, by file type.",
+      "compliance-ranking": "Deadline compliance rate by organisation."
+    },
+    "windowDaysLabel": "Rolling window (days)",
+    "groupByLabel": "Group by organisation type",
+    "download": "Download CSV",
+    "downloading": "Generating…",
+    "downloadSuccess": "Export downloaded.",
+    "downloadFailed": "Unable to generate the export."
   },
   "admin": {
     "org": {
@@ -448,8 +508,10 @@
       "cannotDeleteInUse": "This type is used by at least one alert rule."
     },
     "audit": {
-      "title": "Login audit log",
-      "description": "AUTH-07 history — SUPER_ADMIN only.",
+      "title": "Audit log",
+      "description": "Sign-in and administration action history — SUPER_ADMIN only.",
+      "tabLogins": "Sign-ins",
+      "tabActions": "Administration actions",
       "success": "Successful",
       "failed": "Failed",
       "loading": "Loading audit log…",
@@ -463,6 +525,18 @@
       "successResult": "Success",
       "failResult": "Failed",
       "allResults": "All results"
+    },
+    "actionLog": {
+      "loading": "Loading actions…",
+      "emptyTitle": "No actions",
+      "emptyDescription": "Creations, updates and executions will appear here.",
+      "actorEmail": "Actor",
+      "resource": "Resource",
+      "action": "Action",
+      "allResources": "All resources",
+      "allActions": "All actions",
+      "target": "Target",
+      "errorReason": "Failure reason"
     }
   },
   "files": {

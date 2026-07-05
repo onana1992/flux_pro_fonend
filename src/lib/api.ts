@@ -24,6 +24,7 @@ import type {
   FileStatus,
   ImportResult,
   LoginAuditEntry,
+  AdminAuditLogEntry,
   OrganizationDetail,
   OrganizationRequest,
   OrganizationSummary,
@@ -43,6 +44,12 @@ import type {
   AlertRuleRequest,
   AlertResponse,
   UnreadCountResponse,
+  DashboardSummary,
+  DashboardMyActivity,
+  DashboardWorkloadEntry,
+  DashboardOverdueFile,
+  DashboardDelayByType,
+  DashboardOrganizationRanking,
 } from "./types";
 import {
   clearAuth,
@@ -382,6 +389,27 @@ export async function getLoginAudit(params: {
   if (params.from) q.set("from", params.from);
   if (params.to) q.set("to", params.to);
   return apiFetch<PageResponse<LoginAuditEntry>>(`/api/admin/login-audit?${q}`);
+}
+
+export async function getAdminAuditLog(params: {
+  page?: number;
+  resourceType?: string;
+  action?: string;
+  actorEmail?: string;
+  success?: boolean;
+  from?: string;
+  to?: string;
+}): Promise<PageResponse<AdminAuditLogEntry>> {
+  const q = new URLSearchParams();
+  q.set("page", String(params.page ?? 0));
+  q.set("size", "30");
+  if (params.resourceType) q.set("resourceType", params.resourceType);
+  if (params.action) q.set("action", params.action);
+  if (params.actorEmail) q.set("actorEmail", params.actorEmail);
+  if (params.success !== undefined) q.set("success", String(params.success));
+  if (params.from) q.set("from", params.from);
+  if (params.to) q.set("to", params.to);
+  return apiFetch<PageResponse<AdminAuditLogEntry>>(`/api/admin/audit-log?${q}`);
 }
 
 export async function deactivateUser(id: string): Promise<User> {
@@ -899,4 +927,88 @@ export async function markAllNotificationsRead(): Promise<void> {
 
 export async function listFileAlerts(fileId: string): Promise<AlertResponse[]> {
   return apiFetch<AlertResponse[]>(`/api/files/${fileId}/alerts`);
+}
+
+/**
+ * Tableaux de bord et reporting (DSH — cf. docs/SPEC-DSH.md). Aucune route dédiée par rôle :
+ * un unique jeu d'endpoints paramétrés par `organizationId`, le périmètre effectif étant
+ * toujours résolu côté serveur (jamais choisi librement par le frontend).
+ */
+export async function getDashboardSummary(params: {
+  organizationId?: string;
+  fileTypeCode?: string;
+} = {}): Promise<DashboardSummary> {
+  const q = new URLSearchParams();
+  if (params.organizationId) q.set("organizationId", params.organizationId);
+  if (params.fileTypeCode) q.set("fileTypeCode", params.fileTypeCode);
+  const suffix = q.toString() ? `?${q}` : "";
+  return apiFetch<DashboardSummary>(`/api/dashboard/summary${suffix}`);
+}
+
+export async function getDashboardMyActivity(): Promise<DashboardMyActivity> {
+  return apiFetch<DashboardMyActivity>("/api/dashboard/my-activity");
+}
+
+export async function getDashboardWorkload(organizationId?: string): Promise<DashboardWorkloadEntry[]> {
+  const q = organizationId ? `?organizationId=${organizationId}` : "";
+  return apiFetch<DashboardWorkloadEntry[]>(`/api/dashboard/workload${q}`);
+}
+
+export async function getDashboardOverdueFiles(params: {
+  organizationId?: string;
+  limit?: number;
+} = {}): Promise<DashboardOverdueFile[]> {
+  const q = new URLSearchParams();
+  if (params.organizationId) q.set("organizationId", params.organizationId);
+  q.set("limit", String(params.limit ?? 10));
+  return apiFetch<DashboardOverdueFile[]>(`/api/dashboard/overdue-files?${q}`);
+}
+
+export async function getDashboardDelayByType(params: {
+  organizationId?: string;
+  windowDays?: number;
+} = {}): Promise<DashboardDelayByType[]> {
+  const q = new URLSearchParams();
+  if (params.organizationId) q.set("organizationId", params.organizationId);
+  q.set("windowDays", String(params.windowDays ?? 30));
+  return apiFetch<DashboardDelayByType[]>(`/api/dashboard/delay-by-type?${q}`);
+}
+
+export async function getDashboardComplianceRanking(params: {
+  groupByTypeCode?: string;
+  windowDays?: number;
+} = {}): Promise<DashboardOrganizationRanking[]> {
+  const q = new URLSearchParams();
+  q.set("groupByTypeCode", params.groupByTypeCode ?? "DIRECTORATE");
+  q.set("windowDays", String(params.windowDays ?? 90));
+  return apiFetch<DashboardOrganizationRanking[]>(`/api/dashboard/compliance-ranking?${q}`);
+}
+
+export async function downloadDashboardExport(params: {
+  dataset: "overdue-files" | "workload" | "compliance-ranking" | "delay-by-type";
+  organizationId?: string;
+  windowDays?: number;
+  groupByTypeCode?: string;
+  filename: string;
+}): Promise<void> {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+  const q = new URLSearchParams({ dataset: params.dataset, format: "csv" });
+  if (params.organizationId) q.set("organizationId", params.organizationId);
+  if (params.windowDays) q.set("windowDays", String(params.windowDays));
+  if (params.groupByTypeCode) q.set("groupByTypeCode", params.groupByTypeCode);
+  const token = getAccessToken();
+  const res = await fetchWithTimeout(`${API_URL}/api/dashboard/export?${q}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const detail = await parseError(res);
+    throw new ApiError(detail, res.status, detail);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = params.filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }

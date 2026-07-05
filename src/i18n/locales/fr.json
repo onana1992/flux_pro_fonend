@@ -37,11 +37,12 @@
     "users": "Utilisateurs",
     "roles": "Rôles",
     "permissions": "Permissions",
-    "loginAudit": "Journal des connexions",
+    "loginAudit": "Journal d'audit",
     "chainTemplates": "Templates de chaîne",
     "fileTypes": "Types de dossier",
     "files": "Dossiers",
-    "alertTypes": "Types d'alerte"
+    "alertTypes": "Types d'alerte",
+    "reports": "Rapports"
   },
   "header": {
     "menu": "Menu",
@@ -95,25 +96,7 @@
     "hello": "Bonjour, {{name}}",
     "overview": "Vue d'ensemble FluxPro — MINTP",
     "organisation": "Organisation",
-    "pilotAgents": "Agents pilotes",
     "activeFiles": "Dossiers actifs",
-    "yourRole": "Votre rôle",
-    "mintpRef": "Référentiel MINTP",
-    "passationChain": "Chaîne de passation",
-    "sprint2": "Sprint 2",
-    "session8h": "Session 8 h",
-    "filesByMonth": "Dossiers par mois",
-    "filesByMonthSub": "Volume estimé — disponible au Sprint 2",
-    "annualTotal": "Total annuel",
-    "monthlyAvg": "Moyenne / mois",
-    "peakMay": "Pic (Mai)",
-    "treatmentGoal": "Objectif de traitement",
-    "treatmentGoalSub": "Délai moyen de passation par maillon",
-    "goal": "objectif",
-    "trendVsLastMonth": "+10% vs mois dernier",
-    "target": "Objectif",
-    "average": "Moyenne",
-    "today": "Aujourd'hui",
     "myProfile": "Mon profil",
     "sessionInfo": "Informations de session",
     "direction": "Direction",
@@ -122,20 +105,97 @@
     "jwtSession": "Session JWT",
     "quickAccess": "Accès rapide",
     "quickAccessSub": "Administration et configuration",
-    "months": {
-      "jan": "Jan",
-      "feb": "Fév",
-      "mar": "Mar",
-      "apr": "Avr",
-      "may": "Mai",
-      "jun": "Jun",
-      "jul": "Jul",
-      "aug": "Aoû",
-      "sep": "Sep",
-      "oct": "Oct",
-      "nov": "Nov",
-      "dec": "Déc"
+    "scope": {
+      "SELF": "Périmètre personnel",
+      "SUBTREE": "Périmètre : équipe",
+      "REGIONAL": "Périmètre régional",
+      "GLOBAL": "Périmètre national"
+    },
+    "stats": {
+      "active": "Dossiers actifs",
+      "activeSub": "En cours de traitement",
+      "newThisMonth": "{{count}} nouveau(x) ce mois",
+      "overdue": "Dossiers en retard",
+      "overdueSub": "Échéance dépassée",
+      "attention": "À traiter",
+      "onTrack": "Aucun retard",
+      "closedThisMonth": "Clôturés ce mois",
+      "closedThisMonthSub": "Depuis le 1er du mois"
+    },
+    "myActivity": {
+      "title": "Mon activité",
+      "sub": "Les maillons dont vous êtes responsable, tous statuts confondus",
+      "active": "Actifs",
+      "overdue": "En retard",
+      "transmitted": "Transmis (30j)",
+      "empty": "Aucun dossier actif à votre charge.",
+      "late": "En retard",
+      "onTime": "Dans les délais",
+      "dueOn": "échéance {{date}}"
+    },
+    "workload": {
+      "title": "Charge par agent",
+      "sub": "Dossiers actifs par agent dans votre périmètre",
+      "agent": "Agent",
+      "organization": "Organisation",
+      "active": "Actifs",
+      "overdue": "Retards",
+      "empty": "Aucune charge active dans ce périmètre."
+    },
+    "overdueFiles": {
+      "title": "Top retards",
+      "sub": "Dossiers les plus en retard dans votre périmètre",
+      "reference": "Dossier",
+      "step": "Maillon",
+      "responsible": "Responsable",
+      "dueAt": "Échéance",
+      "daysLate": "Retard",
+      "empty": "Aucun dossier en retard. Bravo !"
+    },
+    "delayByType": {
+      "title": "Délai moyen par type de dossier",
+      "sub": "Délai réel moyen vs cible du template — 30 derniers jours",
+      "days": "j",
+      "closedCount": "{{count}} dossier(s) clôturé(s)",
+      "empty": "Aucun dossier clôturé sur la période."
+    },
+    "complianceRanking": {
+      "title": "Classement des directions",
+      "sub": "Taux de respect des délais — 90 derniers jours",
+      "organization": "Organisation",
+      "closed": "Clôturés",
+      "compliant": "Conformes",
+      "rate": "Taux",
+      "empty": "Aucun dossier clôturé sur la période."
+    },
+    "complianceGauge": {
+      "title": "Taux de respect des délais",
+      "sub": "Vue synthétique de votre périmètre",
+      "label": "conformité"
     }
+  },
+  "reports": {
+    "title": "Rapports et exports",
+    "description": "Exportez les données des tableaux de bord au format CSV.",
+    "datasetLabel": "Jeu de données",
+    "dataset": {
+      "overdue-files": "Dossiers en retard",
+      "workload": "Charge par agent",
+      "delay-by-type": "Délai moyen par type",
+      "compliance-ranking": "Classement des directions"
+    },
+    "datasetHint": {
+      "overdue-files": "Liste des dossiers en retard dans votre périmètre.",
+      "workload": "Nombre de dossiers actifs et en retard par agent.",
+      "delay-by-type": "Délai réel moyen comparé à la cible, par type de dossier.",
+      "compliance-ranking": "Taux de respect des délais par organisation."
+    },
+    "windowDaysLabel": "Fenêtre glissante (jours)",
+    "groupByLabel": "Regrouper par type d'organisation",
+    "download": "Télécharger le CSV",
+    "downloading": "Génération…",
+    "downloadSuccess": "Export téléchargé.",
+    "downloadFailed": "Impossible de générer l'export."
   },
   "admin": {
     "org": {
@@ -448,8 +508,10 @@
       "cannotDeleteInUse": "Ce type est utilisé par au moins une règle d'alerte."
     },
     "audit": {
-      "title": "Journal des connexions",
-      "description": "Historique AUTH-07 — réservé SUPER_ADMIN.",
+      "title": "Journal d'audit",
+      "description": "Historique des connexions et des actions d'administration — réservé SUPER_ADMIN.",
+      "tabLogins": "Connexions",
+      "tabActions": "Actions d'administration",
       "success": "Réussies",
       "failed": "Échouées",
       "loading": "Chargement du journal…",
@@ -463,6 +525,18 @@
       "successResult": "Succès",
       "failResult": "Échec",
       "allResults": "Tous les résultats"
+    },
+    "actionLog": {
+      "loading": "Chargement des actions…",
+      "emptyTitle": "Aucune action",
+      "emptyDescription": "Les créations, modifications et exécutions apparaîtront ici.",
+      "actorEmail": "Auteur",
+      "resource": "Ressource",
+      "action": "Action",
+      "allResources": "Toutes les ressources",
+      "allActions": "Toutes les actions",
+      "target": "Élément concerné",
+      "errorReason": "Motif d'échec"
     }
   },
   "files": {

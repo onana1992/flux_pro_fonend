@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Avatar,
@@ -9,13 +10,15 @@ import {
   Text,
 } from "@radix-ui/themes";
 import {
-  ArrowUpIcon,
-  ChevronRightIcon,
   CalendarIcon,
+  CheckCircledIcon,
+  ChevronRightIcon,
+  ExclamationTriangleIcon,
   FileTextIcon,
   HomeIcon,
   PersonIcon,
   Share1Icon,
+  BarChartIcon,
   ReaderIcon,
 } from "@radix-ui/react-icons";
 import { useTranslation } from "react-i18next";
@@ -23,17 +26,38 @@ import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useAuth } from "@/components/AuthProvider";
 import { RoleBadge } from "@/components/ui/shared";
-
-const BAR_HEIGHTS = [65, 45, 80, 55, 90, 70, 40, 85, 60, 75, 50, 95];
-const MONTH_KEYS = [
-  "jan", "feb", "mar", "apr", "may", "jun",
-  "jul", "aug", "sep", "oct", "nov", "dec",
-] as const;
+import { hasPermission } from "@/lib/auth-storage";
+import {
+  ApiError,
+  getDashboardComplianceRanking,
+  getDashboardDelayByType,
+  getDashboardMyActivity,
+  getDashboardOverdueFiles,
+  getDashboardSummary,
+  getDashboardWorkload,
+} from "@/lib/api";
+import type {
+  DashboardDelayByType,
+  DashboardMyActivity,
+  DashboardOrganizationRanking,
+  DashboardOverdueFile,
+  DashboardSummary,
+  DashboardWorkloadEntry,
+} from "@/lib/types";
+import {
+  ComplianceRankingWidget,
+  DelayByTypeWidget,
+  MyActivityWidget,
+  OverdueFilesWidget,
+  WorkloadWidget,
+} from "@/components/dashboard/DashboardWidgets";
 
 function Gauge({ value, label }: { value: number; label: string }) {
   const r = 58;
   const c = 2 * Math.PI * r;
-  const offset = c - (value / 100) * c;
+  const clamped = Math.max(0, Math.min(100, value));
+  const offset = c - (clamped / 100) * c;
+  const strokeColor = clamped >= 80 ? "#12b76a" : clamped >= 50 ? "#f97316" : "#ef4444";
 
   return (
     <div className="dash-gauge">
@@ -44,7 +68,7 @@ function Gauge({ value, label }: { value: number; label: string }) {
           cy="70"
           r={r}
           fill="none"
-          stroke="#465fff"
+          stroke={strokeColor}
           strokeWidth="12"
           strokeLinecap="round"
           strokeDasharray={c}
@@ -52,7 +76,7 @@ function Gauge({ value, label }: { value: number; label: string }) {
         />
       </svg>
       <div className="dash-gauge__center">
-        <span className="dash-gauge__value">{value}%</span>
+        <span className="dash-gauge__value">{clamped}%</span>
         <Text size="1" color="gray" mt="1">
           {label}
         </Text>
@@ -65,6 +89,54 @@ export default function DashboardPage() {
   const { t, i18n } = useTranslation();
   const { user, isAdmin } = useAuth();
 
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [myActivity, setMyActivity] = useState<DashboardMyActivity | null>(null);
+  const [workload, setWorkload] = useState<DashboardWorkloadEntry[] | null>(null);
+  const [overdueFiles, setOverdueFiles] = useState<DashboardOverdueFile[] | null>(null);
+  const [delayByType, setDelayByType] = useState<DashboardDelayByType[] | null>(null);
+  const [ranking, setRanking] = useState<DashboardOrganizationRanking[] | null>(null);
+  const [dashError, setDashError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setDashError(null);
+      try {
+        const s = await getDashboardSummary();
+        if (cancelled) return;
+        setSummary(s);
+
+        const isWide = s.scopeWidth !== "SELF";
+        const isTopLevel = s.scopeWidth === "GLOBAL" || s.scopeWidth === "REGIONAL";
+
+        const [activity, delay, workloadData, overdueData, rankingData] = await Promise.all([
+          getDashboardMyActivity(),
+          getDashboardDelayByType({ windowDays: 30 }),
+          isWide ? getDashboardWorkload() : Promise.resolve(null),
+          isWide ? getDashboardOverdueFiles({ limit: 8 }) : Promise.resolve(null),
+          isTopLevel ? getDashboardComplianceRanking() : Promise.resolve(null),
+        ]);
+        if (cancelled) return;
+        setMyActivity(activity);
+        setDelayByType(delay);
+        setWorkload(workloadData);
+        setOverdueFiles(overdueData);
+        setRanking(rankingData);
+      } catch (err) {
+        if (!cancelled) {
+          setDashError(err instanceof ApiError ? err.message : t("common.errorLoad"));
+        }
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const locale = i18n.language?.startsWith("en") ? "en-GB" : "fr-FR";
   const today = new Date().toLocaleDateString(locale, {
     weekday: "long",
@@ -73,27 +145,31 @@ export default function DashboardPage() {
     year: "numeric",
   });
 
+  const isWide = summary ? summary.scopeWidth !== "SELF" : false;
+  const isTopLevel = summary ? summary.scopeWidth === "GLOBAL" || summary.scopeWidth === "REGIONAL" : false;
+  const canExport = hasPermission(user, "DASHBOARD:EXPORT");
+
+  const complianceRate = ranking && ranking.length > 0
+    ? Math.round(
+        (ranking.reduce((sum, r) => sum + r.compliantCount, 0) /
+          Math.max(1, ranking.reduce((sum, r) => sum + r.closedCount, 0))) *
+          100,
+      )
+    : summary && summary.activeFiles > 0
+      ? Math.round(100 - (summary.overdueFiles / summary.activeFiles) * 100)
+      : 100;
+
   const quickLinks = [
+    { labelKey: "nav.reports", href: "/rapports", icon: <BarChartIcon />, bg: "#fff6ed", color: "#f97316", exportOnly: true },
     { labelKey: "nav.orgChart", href: "/admin/org", icon: <Share1Icon />, bg: "#ecf3ff", color: "#465fff" },
     { labelKey: "nav.users", href: "/admin/users", icon: <PersonIcon />, bg: "#ecfdf3", color: "#12b76a" },
     { labelKey: "nav.loginAudit", href: "/admin/audit", icon: <ReaderIcon />, bg: "#f4f3ff", color: "#7c3aed", superAdmin: true },
   ].filter((l) => {
+    if ("exportOnly" in l && l.exportOnly) return canExport;
     if ("superAdmin" in l && l.superAdmin) return user?.role === "SUPER_ADMIN";
     if (l.href.startsWith("/admin")) return isAdmin;
     return true;
   });
-
-  const chartSummary = [
-    { key: "annualTotal", v: "—" },
-    { key: "monthlyAvg", v: "—" },
-    { key: "peakMay", v: "90" },
-  ];
-
-  const goalSummary = [
-    { key: "target", v: "48h" },
-    { key: "average", v: "—" },
-    { key: "today", v: "—" },
-  ];
 
   const profileRows = [
     { key: "direction", v: user?.organization.name },
@@ -123,9 +199,20 @@ export default function DashboardPage() {
                 <HomeIcon width={14} height={14} />
                 {user?.organization.code}
               </span>
+              {summary && (
+                <span className="dash-welcome__pill">
+                  {t(`dashboard.scope.${summary.scopeWidth}`)}
+                </span>
+              )}
             </div>
           </Flex>
         </div>
+
+        {dashError && (
+          <Text as="p" size="2" color="red" mb="4">
+            {dashError}
+          </Text>
+        )}
 
         <Grid columns={{ initial: "1", sm: "2", lg: "4" }} gap="4" mb="5" className="dash-stats-grid">
           <div className="dash-stat">
@@ -133,7 +220,7 @@ export default function DashboardPage() {
               <HomeIcon width={22} height={22} />
             </div>
             <p className="dash-stat__label">{t("dashboard.organisation")}</p>
-            <p className="dash-stat__value">{user?.organization.code}</p>
+            <p className="dash-stat__value">{summary?.organizationCode ?? user?.organization.code}</p>
             <div className="dash-stat__footer">
               <Text size="1" color="gray">{user?.organization.name}</Text>
               <span className="dash-trend dash-trend--up">{t("common.active")}</span>
@@ -142,98 +229,86 @@ export default function DashboardPage() {
 
           <div className="dash-stat">
             <div className="dash-stat__icon dash-stat__icon--green">
-              <PersonIcon width={22} height={22} />
+              <FileTextIcon width={22} height={22} />
             </div>
-            <p className="dash-stat__label">{t("dashboard.pilotAgents")}</p>
-            <p className="dash-stat__value">85</p>
+            <p className="dash-stat__label">{t("dashboard.stats.active")}</p>
+            <p className="dash-stat__value">{summary?.activeFiles ?? "—"}</p>
             <div className="dash-stat__footer">
-              <Text size="1" color="gray">{t("dashboard.mintpRef")}</Text>
-              <span className="dash-trend dash-trend--up">
-                <ArrowUpIcon /> 11%
+              <Text size="1" color="gray">{t("dashboard.stats.activeSub")}</Text>
+              <span className="dash-trend dash-trend--neutral">
+                {summary ? t("dashboard.stats.newThisMonth", { count: summary.createdThisMonth }) : "—"}
               </span>
             </div>
           </div>
 
           <div className="dash-stat">
             <div className="dash-stat__icon dash-stat__icon--orange">
-              <FileTextIcon width={22} height={22} />
+              <ExclamationTriangleIcon width={22} height={22} />
             </div>
-            <p className="dash-stat__label">{t("dashboard.activeFiles")}</p>
-            <p className="dash-stat__value">—</p>
+            <p className="dash-stat__label">{t("dashboard.stats.overdue")}</p>
+            <p className="dash-stat__value" style={{ color: summary && summary.overdueFiles > 0 ? "var(--red-9)" : undefined }}>
+              {summary?.overdueFiles ?? "—"}
+            </p>
             <div className="dash-stat__footer">
-              <Text size="1" color="gray">{t("dashboard.passationChain")}</Text>
-              <span className="dash-trend dash-trend--soon">{t("dashboard.sprint2")}</span>
+              <Text size="1" color="gray">{t("dashboard.stats.overdueSub")}</Text>
+              {summary && (
+                <span className={`dash-trend ${summary.overdueFiles > 0 ? "dash-trend--soon" : "dash-trend--up"}`}>
+                  {summary.overdueFiles > 0 ? t("dashboard.stats.attention") : t("dashboard.stats.onTrack")}
+                </span>
+              )}
             </div>
           </div>
 
           <div className="dash-stat">
             <div className="dash-stat__icon dash-stat__icon--purple">
-              <ReaderIcon width={22} height={22} />
+              <CheckCircledIcon width={22} height={22} />
             </div>
-            <p className="dash-stat__label">{t("dashboard.yourRole")}</p>
-            <p className="dash-stat__value dash-stat__value--sm">
-              {user?.role.replace(/_/g, " ")}
-            </p>
+            <p className="dash-stat__label">{t("dashboard.stats.closedThisMonth")}</p>
+            <p className="dash-stat__value">{summary?.closedThisMonth ?? "—"}</p>
             <div className="dash-stat__footer">
+              <Text size="1" color="gray">{t("dashboard.stats.closedThisMonthSub")}</Text>
               <RoleBadge role={user?.role ?? ""} />
-              <span className="dash-trend dash-trend--neutral">{t("dashboard.session8h")}</span>
             </div>
           </div>
         </Grid>
 
         <Grid columns={{ initial: "1", lg: "12" }} gap="4" mb="5">
-          <Box gridColumn={{ lg: "span 8" }}>
-            <div className="dash-card">
-              <h2 className="dash-card__title">{t("dashboard.filesByMonth")}</h2>
-              <p className="dash-card__sub">{t("dashboard.filesByMonthSub")}</p>
-              <Flex align="end" gap="2" style={{ height: 200, marginBottom: "1rem" }}>
-                {BAR_HEIGHTS.map((h, i) => (
-                  <Flex key={MONTH_KEYS[i]} direction="column" align="center" gap="2" style={{ flex: 1 }}>
-                    <div className="dash-bar" style={{ height: `${h}%` }} />
-                    <Text size="1" color="gray">{t(`dashboard.months.${MONTH_KEYS[i]}`)}</Text>
-                  </Flex>
-                ))}
-              </Flex>
-              <Grid columns="3" gap="4" pt="4" className="dash-chart-summary">
-                {chartSummary.map(({ key, v }) => (
-                  <Box key={key} className="dash-chart-summary__item">
-                    <Text as="p" size="1" color="gray" mb="1">
-                      {t(`dashboard.${key}`)}
-                    </Text>
-                    <Text as="p" size="4" weight="bold" className="dash-chart-summary__value">
-                      {v}
-                    </Text>
-                  </Box>
-                ))}
-              </Grid>
-            </div>
+          <Box gridColumn={{ lg: "span 7" }}>
+            <MyActivityWidget data={myActivity} />
           </Box>
-
-          <Box gridColumn={{ lg: "span 4" }}>
+          <Box gridColumn={{ lg: "span 5" }}>
             <div className="dash-card">
-              <h2 className="dash-card__title">{t("dashboard.treatmentGoal")}</h2>
-              <p className="dash-card__sub">{t("dashboard.treatmentGoalSub")}</p>
-              <Gauge value={75} label={t("dashboard.goal")} />
-              <Flex justify="center" mt="3" mb="4">
-                <span className="dash-trend dash-trend--up">
-                  <ArrowUpIcon /> {t("dashboard.trendVsLastMonth")}
-                </span>
-              </Flex>
-              <Grid columns="3" gap="4" pt="4" className="dash-chart-summary">
-                {goalSummary.map(({ key, v }) => (
-                  <Box key={key} className="dash-chart-summary__item">
-                    <Text as="p" size="1" color="gray" mb="1">
-                      {t(`dashboard.${key}`)}
-                    </Text>
-                    <Text as="p" size="4" weight="bold" className="dash-chart-summary__value">
-                      {v}
-                    </Text>
-                  </Box>
-                ))}
-              </Grid>
+              <h2 className="dash-card__title">{t("dashboard.complianceGauge.title")}</h2>
+              <p className="dash-card__sub">{t("dashboard.complianceGauge.sub")}</p>
+              <Gauge value={complianceRate} label={t("dashboard.complianceGauge.label")} />
             </div>
           </Box>
         </Grid>
+
+        <Grid columns={{ initial: "1", lg: "12" }} gap="4" mb="5">
+          <Box gridColumn={{ lg: "span 12" }}>
+            <DelayByTypeWidget data={delayByType} />
+          </Box>
+        </Grid>
+
+        {isWide && (
+          <Grid columns={{ initial: "1", lg: "12" }} gap="4" mb="5">
+            <Box gridColumn={{ lg: "span 6" }}>
+              <WorkloadWidget data={workload} />
+            </Box>
+            <Box gridColumn={{ lg: "span 6" }}>
+              <OverdueFilesWidget data={overdueFiles} />
+            </Box>
+          </Grid>
+        )}
+
+        {isTopLevel && (
+          <Grid columns={{ initial: "1", lg: "12" }} gap="4" mb="5">
+            <Box gridColumn={{ lg: "span 12" }}>
+              <ComplianceRankingWidget data={ranking} />
+            </Box>
+          </Grid>
+        )}
 
         <Grid columns={{ initial: "1", lg: "12" }} gap="4" mb="4">
           <Box gridColumn={{ lg: "span 4" }}>

@@ -7,6 +7,7 @@ import {
   Text,
 } from "@radix-ui/themes";
 import {
+  BarChartIcon,
   BellIcon,
   ChevronRightIcon,
   ComponentInstanceIcon,
@@ -61,6 +62,12 @@ const MAIN_SECTION: NavSection = {
       icon: <ReaderIcon />,
       permission: "FILES:READ",
       matchPrefix: "/files",
+    },
+    {
+      href: "/rapports",
+      labelKey: "nav.reports",
+      icon: <BarChartIcon />,
+      permission: "DASHBOARD:EXPORT",
     },
   ],
 };
@@ -220,7 +227,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       return true;
     }
 
-    const sections: NavSection[] = [MAIN_SECTION];
+    const sections: NavSection[] = [{ ...MAIN_SECTION, items: MAIN_SECTION.items.filter(canSeeItem) }];
 
     const referentialItems = REFERENTIALS_SECTION.items.filter(canSeeItem);
     if (referentialItems.length > 0) {

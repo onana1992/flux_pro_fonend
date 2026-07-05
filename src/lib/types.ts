@@ -143,6 +143,20 @@ export interface LoginAuditEntry {
   createdAt: string;
 }
 
+export interface AdminAuditLogEntry {
+  id: string;
+  actorEmail: string;
+  resourceType: string;
+  action: string;
+  resourceId?: string;
+  resourceLabel?: string;
+  success: boolean;
+  errorMessage?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: string;
+}
+
 /** British spelling aliases used by some UI components */
 export type OrganisationType = OrganizationTypeCode;
 export type OrganisationTreeNode = OrganizationTreeNode;
@@ -477,4 +491,73 @@ export interface AlertResponse {
 
 export interface UnreadCountResponse {
   unreadCount: number;
+}
+
+/** Largeur du périmètre organisationnel résolu par l'API (cf. SPEC-DSH.md §4.2) — jamais un nom de rôle. */
+export type DashboardScopeWidth = "SELF" | "SUBTREE" | "REGIONAL" | "GLOBAL";
+
+export interface DashboardSummary {
+  organizationId?: string | null;
+  organizationCode?: string | null;
+  scopeWidth: DashboardScopeWidth;
+  activeFiles: number;
+  overdueFiles: number;
+  closedThisMonth: number;
+  createdThisMonth: number;
+}
+
+export interface DashboardActivityItem {
+  passageId: string;
+  fileId: string;
+  fileReferenceNumber?: string | null;
+  fileSubject?: string | null;
+  stepLabel: string;
+  receivedAt?: string | null;
+  dueAt?: string | null;
+  overdue: boolean;
+}
+
+export interface DashboardMyActivity {
+  activeCount: number;
+  overdueCount: number;
+  transmittedRecentCount: number;
+  items: DashboardActivityItem[];
+}
+
+export interface DashboardWorkloadEntry {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  organizationCode?: string | null;
+  activeCount: number;
+  overdueCount: number;
+}
+
+export interface DashboardOverdueFile {
+  fileId: string;
+  referenceNumber?: string | null;
+  subject: string;
+  fileTypeCode?: string | null;
+  organizationCode?: string | null;
+  stepLabel: string;
+  responsibleUserName?: string | null;
+  dueAt: string;
+  daysOverdue: number;
+}
+
+export interface DashboardDelayByType {
+  fileTypeCode: string;
+  fileTypeLabel: string;
+  closedCount: number;
+  averageDelayDays: number;
+  targetDelayDays?: number | null;
+}
+
+export interface DashboardOrganizationRanking {
+  organizationId: string;
+  organizationCode: string;
+  organizationName: string;
+  closedCount: number;
+  compliantCount: number;
+  complianceRate: number;
 }

@@ -134,6 +134,18 @@ function switchPermissionByRole(role: UserProfile["role"], permission: string): 
     case "ALERT_RULES:UPDATE":
     case "ALERT_RULES:DELETE":
       return role === "SUPER_ADMIN" || role === "BUSINESS_ADMIN";
+    case "DASHBOARD:READ":
+      return true;
+    case "DASHBOARD:EXPORT":
+      return (
+        role === "SUPER_ADMIN" ||
+        role === "BUSINESS_ADMIN" ||
+        role === "DIRECTOR" ||
+        role === "SERVICE_HEAD" ||
+        role === "REGIONAL_DIRECTOR" ||
+        role === "SECRETARY_GENERAL" ||
+        role === "EXECUTIVE_OFFICE"
+      );
     default:
       return false;
   }

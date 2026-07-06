@@ -17,15 +17,20 @@ import {
   getStoredUser,
   saveAuth,
 } from "@/lib/auth-storage";
+import { onSessionExpired } from "@/lib/session-events";
 import type { UserProfile } from "@/lib/types";
 
 interface AuthContextValue {
   user: UserProfile | null;
   loading: boolean;
   isAdmin: boolean;
+  /** Vrai juste après une expiration de session détectée (401 non récupérable). */
+  sessionExpired: boolean;
   login: (email: string, password: string) => Promise<UserProfile>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  /** À appeler une fois la notification de session expirée affichée à l'utilisateur. */
+  clearSessionExpired: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -33,6 +38,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const refreshUser = useCallback(async () => {
     if (!getAccessToken()) {
@@ -63,9 +69,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, [refreshUser]);
 
+  // Écoute les 401 non récupérables signalés par `apiFetch` (cf. src/lib/api.ts) :
+  // la session est purgée côté client et une notification est affichée sur /login
+  // (via `sessionExpired`), la redirection étant naturellement déclenchée par
+  // `RequireAuth` dès que `user` devient `null`.
+  useEffect(() => {
+    return onSessionExpired(() => {
+      setUser(null);
+      setSessionExpired(true);
+    });
+  }, []);
+
   const login = useCallback(async (email: string, password: string) => {
     const data = await apiLogin(email, password);
     setUser(data.user);
+    setSessionExpired(false);
     return data.user;
   }, []);
 
@@ -74,16 +92,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const clearSessionExpired = useCallback(() => {
+    setSessionExpired(false);
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
       loading,
       isAdmin: canAccessAdmin(user),
+      sessionExpired,
       login,
       logout,
       refreshUser,
+      clearSessionExpired,
     }),
-    [user, loading, login, logout, refreshUser],
+    [user, loading, sessionExpired, login, logout, refreshUser, clearSessionExpired],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

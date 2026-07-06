@@ -90,7 +90,8 @@
     "heroTitle": "Gestion des dossiers par chaîne hiérarchique",
     "heroSubtitle": "Suivi, passation et traçabilité des dossiers administratifs.",
     "clientBadge": "Déploiement pilote · MINTP Cameroun",
-    "poweredBy": "FluxPro · une solution Nano-Tech"
+    "poweredBy": "FluxPro · une solution Nano-Tech",
+    "sessionExpired": "Votre session a expiré. Veuillez vous reconnecter."
   },
   "dashboard": {
     "hello": "Bonjour, {{name}}",
@@ -728,12 +729,25 @@
   "changePassword": {
     "title": "Changement de mot de passe",
     "subtitle": "Vous devez définir un nouveau mot de passe avant de continuer.",
+    "heroTitle": "Sécurisez votre compte",
+    "heroSubtitle": "Un mot de passe robuste protège vos dossiers et ceux de votre organisation.",
     "current": "Mot de passe actuel",
     "new": "Nouveau mot de passe",
     "confirm": "Confirmer le mot de passe",
-    "submit": "Enregistrer",
+    "showPassword": "Afficher",
+    "hidePassword": "Masquer",
+    "requirementsTitle": "Le nouveau mot de passe doit contenir :",
+    "requirementLength": "8 caractères minimum",
+    "requirementUppercase": "Une lettre majuscule",
+    "requirementDigit": "Un chiffre",
+    "requirementSpecial": "Un caractère spécial",
+    "requirementMatch": "Identique à la confirmation",
+    "submit": "Enregistrer et continuer",
     "submitting": "Enregistrement…",
-    "mismatch": "Les mots de passe ne correspondent pas."
+    "mismatch": "Les mots de passe ne correspondent pas.",
+    "samePassword": "Le nouveau mot de passe doit être différent de l'actuel.",
+    "logoutHint": "Vous préférez ne pas continuer maintenant ?",
+    "logout": "Se déconnecter"
   },
   "pagination": {
     "page": "Page {{current}} sur {{total}}",

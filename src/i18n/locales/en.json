@@ -90,7 +90,8 @@
     "heroTitle": "File management by hierarchical chain",
     "heroSubtitle": "Track, route and audit administrative files.",
     "clientBadge": "Pilot deployment · MINTP Cameroon",
-    "poweredBy": "FluxPro · a Nano-Tech solution"
+    "poweredBy": "FluxPro · a Nano-Tech solution",
+    "sessionExpired": "Your session has expired. Please sign in again."
   },
   "dashboard": {
     "hello": "Hello, {{name}}",
@@ -728,12 +729,25 @@
   "changePassword": {
     "title": "Change password",
     "subtitle": "You must set a new password before continuing.",
+    "heroTitle": "Secure your account",
+    "heroSubtitle": "A strong password protects your files and your organization's data.",
     "current": "Current password",
     "new": "New password",
     "confirm": "Confirm password",
-    "submit": "Save",
+    "showPassword": "Show",
+    "hidePassword": "Hide",
+    "requirementsTitle": "The new password must contain:",
+    "requirementLength": "At least 8 characters",
+    "requirementUppercase": "An uppercase letter",
+    "requirementDigit": "A digit",
+    "requirementSpecial": "A special character",
+    "requirementMatch": "Matches the confirmation",
+    "submit": "Save and continue",
     "submitting": "Saving…",
-    "mismatch": "Passwords do not match."
+    "mismatch": "Passwords do not match.",
+    "samePassword": "The new password must be different from the current one.",
+    "logoutHint": "Prefer not to continue right now?",
+    "logout": "Sign out"
   },
   "pagination": {
     "page": "Page {{current}} of {{total}}",

@@ -57,10 +57,20 @@ import {
   getRefreshToken,
   saveAuth,
 } from "./auth-storage";
+import { emitSessionExpired } from "./session-events";
 import i18n from "@/i18n/client";
+import { defaultLocale } from "@/i18n/settings";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 const REQUEST_TIMEOUT_MS = 8_000;
+
+function withAcceptLanguage(options: RequestInit): RequestInit {
+  const headers = new Headers(options.headers);
+  if (!headers.has("Accept-Language")) {
+    headers.set("Accept-Language", i18n.language || defaultLocale);
+  }
+  return { ...options, headers };
+}
 
 async function fetchWithTimeout(
   url: string,
@@ -68,7 +78,7 @@ async function fetchWithTimeout(
 ): Promise<Response> {
   try {
     return await fetch(url, {
-      ...options,
+      ...withAcceptLanguage(options),
       signal: options.signal ?? AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
   } catch (error) {
@@ -139,6 +149,13 @@ export async function apiFetch<T>(
     if (newToken) {
       return apiFetch<T>(path, options, false);
     }
+  }
+
+  // 401 non récupérable sur une requête qui portait un token : la session est
+  // considérée comme expirée (token + refresh token invalides ou absents).
+  if (res.status === 401 && token) {
+    clearAuth();
+    emitSessionExpired();
   }
 
   if (!res.ok) {

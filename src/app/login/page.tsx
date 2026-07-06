@@ -11,10 +11,11 @@ import { ApiError } from "@/lib/api";
 
 const fieldClass =
   "w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 transition placeholder:text-gray-400 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/15";
+const passwordFieldClass = `${fieldClass} pr-16`;
 
 export default function LoginPage() {
   const { t } = useTranslation();
-  const { login, user } = useAuth();
+  const { login, user, sessionExpired, clearSessionExpired } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("e.fotso@mintp.cm");
   const [password, setPassword] = useState("Mintp@2025");
@@ -22,16 +23,27 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showSessionExpired, setShowSessionExpired] = useState(false);
 
   useEffect(() => {
     if (user) router.replace("/dashboard");
   }, [user, router]);
+
+  // Capture le flag dans un état local dès son apparition, puis le réinitialise
+  // dans le contexte pour qu'il ne réapparaisse pas lors d'une déconnexion normale.
+  useEffect(() => {
+    if (sessionExpired) {
+      setShowSessionExpired(true);
+      clearSessionExpired();
+    }
+  }, [sessionExpired, clearSessionExpired]);
 
   if (user) return null;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setShowSessionExpired(false);
     setSubmitting(true);
     try {
       const profile = await login(email, password);
@@ -100,29 +112,29 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <label htmlFor="login-password" className="text-sm font-medium text-gray-700">
-                    {t("login.password")}
-                  </label>
+                <label htmlFor="login-password" className="mb-1.5 block text-sm font-medium text-gray-700">
+                  {t("login.password")}
+                </label>
+                <div className="relative">
+                  <input
+                    id="login-password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={passwordFieldClass}
+                  />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#2563EB]"
+                    className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1 text-xs text-gray-500 hover:text-[#2563EB]"
                   >
                     {showPassword ? <EyeOpenIcon width={14} height={14} /> : <EyeClosedIcon width={14} height={14} />}
                     {showPassword ? t("login.hidePassword") : t("login.showPassword")}
                   </button>
                 </div>
-                <input
-                  id="login-password"
-                  type={showPassword ? "text" : "password"}
-                  required
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={fieldClass}
-                />
               </div>
 
               <label className="flex cursor-pointer items-center gap-2 pt-1 text-sm text-gray-600">
@@ -134,6 +146,12 @@ export default function LoginPage() {
                 />
                 {t("login.rememberMe")}
               </label>
+
+              {showSessionExpired && !error && (
+                <p role="alert" className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                  {t("login.sessionExpired")}
+                </p>
+              )}
 
               {error && (
                 <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">

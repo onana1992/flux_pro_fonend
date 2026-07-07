@@ -111,6 +111,22 @@ async function parseError(res: Response): Promise<string> {
   }
 }
 
+/**
+ * Un token expiré/invalide est normalement rejeté en 401 (cf. CustomAuthenticationEntryPoint
+ * côté backend), mais certains cas (RBAC sur un contexte non authentifié) peuvent encore
+ * renvoyer 403 avec le code `AUTH_REQUIRED` : on les traite comme une session expirée pour
+ * déclencher le même flux de rafraîchissement. Utilise `clone()` pour ne pas consommer le
+ * corps de la réponse, encore nécessaire ensuite pour `parseError`.
+ */
+async function hasAuthRequiredCode(res: Response): Promise<boolean> {
+  try {
+    const body = await res.clone().json();
+    return body?.code === "AUTH_REQUIRED";
+  } catch {
+    return false;
+  }
+}
+
 async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return null;
@@ -144,16 +160,19 @@ export async function apiFetch<T>(
 
   const res = await fetchWithTimeout(`${API_URL}${path}`, { ...options, headers });
 
-  if (res.status === 401 && retry && getRefreshToken()) {
+  const sessionExpired =
+    res.status === 401 || (res.status === 403 && (await hasAuthRequiredCode(res)));
+
+  if (sessionExpired && retry && getRefreshToken()) {
     const newToken = await refreshAccessToken();
     if (newToken) {
       return apiFetch<T>(path, options, false);
     }
   }
 
-  // 401 non récupérable sur une requête qui portait un token : la session est
+  // Session non récupérable sur une requête qui portait un token : la session est
   // considérée comme expirée (token + refresh token invalides ou absents).
-  if (res.status === 401 && token) {
+  if (sessionExpired && token) {
     clearAuth();
     emitSessionExpired();
   }

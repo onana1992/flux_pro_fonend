@@ -358,6 +358,7 @@ export async function createUser(body: {
   organizationId: string;
   jobTitle?: string;
   active: boolean;
+  organizationHead?: boolean;
   temporaryPassword?: string;
 }): Promise<CreateUserResult> {
   return apiFetch<CreateUserResult>("/api/users", {
@@ -378,6 +379,7 @@ export async function updateUser(
     organizationId: string;
     jobTitle?: string;
     active: boolean;
+    organizationHead?: boolean;
   },
 ): Promise<User> {
   return apiFetch<User>(`/api/users/${id}`, {

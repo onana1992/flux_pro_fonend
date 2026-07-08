@@ -34,7 +34,7 @@ export function UsersTable({
             <Table.ColumnHeaderCell>{t("admin.users.lastName")}</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>{t("admin.users.firstName")}</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>{t("admin.users.email")}</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>{t("admin.users.role")}</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>{t("admin.users.jobTitle")}</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>{t("admin.users.organisation")}</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>{t("admin.users.status")}</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell />
@@ -56,7 +56,7 @@ export function UsersTable({
                 <Text size="2">{u.email}</Text>
               </Table.Cell>
               <Table.Cell>
-                <Text size="2">{u.role.replace(/_/g, " ")}</Text>
+                <Text size="2">{u.jobTitle ?? "—"}</Text>
               </Table.Cell>
               <Table.Cell>
                 <Text size="2">{u.organization.code}</Text>

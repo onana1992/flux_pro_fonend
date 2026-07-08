@@ -92,6 +92,7 @@ export interface User {
   organization: OrganizationSummary;
   jobTitle?: string;
   active: boolean;
+  organizationHead: boolean;
   mustChangePassword: boolean;
   roles?: RoleSummary[];
 }

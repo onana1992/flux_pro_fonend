@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Badge,
@@ -15,7 +15,7 @@ import {
   TextArea,
   TextField,
 } from "@radix-ui/themes";
-import { PlusIcon } from "@radix-ui/react-icons";
+import { PlusIcon, MagnifyingGlassIcon } from "@radix-ui/react-icons";
 import { useTranslation } from "react-i18next";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -26,9 +26,22 @@ import {
   getAllOrganizationTypes,
 } from "@/lib/api";
 import type { OrganizationType, OrganizationTypeRequest } from "@/lib/types";
-import { LoadingBlock, PageHeader, StatusAlert } from "@/components/ui/shared";
+import { EmptyBlock, LoadingBlock, PageHeader, StatusAlert } from "@/components/ui/shared";
 
 const COLOR_OPTIONS = ["purple", "blue", "gray", "green", "orange"] as const;
+
+type StatusFilter = "all" | "active" | "inactive";
+type BooleanFilter = "all" | "yes" | "no";
+
+function matchesSearch(type: OrganizationType, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return (
+    type.code.toLowerCase().includes(q) ||
+    type.name.toLowerCase().includes(q) ||
+    (type.nameEn?.toLowerCase().includes(q) ?? false)
+  );
+}
 
 function sortTypes(items: OrganizationType[]): OrganizationType[] {
   const list = Array.isArray(items) ? items : [];
@@ -57,6 +70,29 @@ export default function AdminOrgTypesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState<OrganizationTypeRequest>(EMPTY_FORM);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [rootFilter, setRootFilter] = useState<BooleanFilter>("all");
+  const [regionalFilter, setRegionalFilter] = useState<BooleanFilter>("all");
+
+  const filteredTypes = useMemo(() => {
+    return types.filter((type) => {
+      if (!matchesSearch(type, search)) return false;
+      if (statusFilter === "active" && !type.active) return false;
+      if (statusFilter === "inactive" && type.active) return false;
+      if (rootFilter === "yes" && !type.allowsRoot) return false;
+      if (rootFilter === "no" && type.allowsRoot) return false;
+      if (regionalFilter === "yes" && !type.isRegionalScope) return false;
+      if (regionalFilter === "no" && type.isRegionalScope) return false;
+      return true;
+    });
+  }, [types, search, statusFilter, rootFilter, regionalFilter]);
+
+  const hasActiveFilters =
+    search.trim() !== "" ||
+    statusFilter !== "all" ||
+    rootFilter !== "all" ||
+    regionalFilter !== "all";
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -77,6 +113,13 @@ export default function AdminOrgTypesPage() {
   function openCreateDialog() {
     setForm({ ...EMPTY_FORM, sortOrder: (types.length + 1) * 10 });
     setDialogOpen(true);
+  }
+
+  function resetFilters() {
+    setSearch("");
+    setStatusFilter("all");
+    setRootFilter("all");
+    setRegionalFilter("all");
   }
 
   async function handleCreate(e: FormEvent) {
@@ -123,7 +166,7 @@ export default function AdminOrgTypesPage() {
       <AppShell>
         <PageHeader
           title={t("admin.orgTypes.title")}
-          description={`${t("admin.orgTypes.description")} (${types.length})`}
+          description={t("admin.orgTypes.description")}
           actions={
             <Button onClick={openCreateDialog}>
               <PlusIcon /> {t("admin.orgTypes.create")}
@@ -134,9 +177,91 @@ export default function AdminOrgTypesPage() {
         {error && <StatusAlert message={error} variant="error" />}
         {success && <StatusAlert message={success} variant="success" />}
 
+        {!loading && types.length > 0 && (
+          <Flex justify="end" align="center" gap="3" mb="4" wrap="wrap">
+            <Text size="2" color="gray">
+              {hasActiveFilters
+                ? t("admin.orgTypes.filteredCount", {
+                    filtered: filteredTypes.length,
+                    total: types.length,
+                  })
+                : t("admin.orgTypes.entityCount", { count: types.length })}
+            </Text>
+          </Flex>
+        )}
+
+        {!loading && types.length > 0 && (
+          <Card size="2" mb="4">
+            <Flex gap="3" wrap="wrap" align="end">
+              <TextField.Root
+                placeholder={t("admin.orgTypes.searchPlaceholder")}
+                value={search}
+                style={{ flex: 1, minWidth: 220 }}
+                onChange={(e) => setSearch(e.target.value)}
+              >
+                <TextField.Slot>
+                  <MagnifyingGlassIcon height="16" width="16" />
+                </TextField.Slot>
+              </TextField.Root>
+
+              <Select.Root
+                value={statusFilter}
+                onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+              >
+                <Select.Trigger placeholder={t("admin.orgTypes.allStatuses")} style={{ minWidth: 160 }} />
+                <Select.Content>
+                  <Select.Item value="all">{t("admin.orgTypes.allStatuses")}</Select.Item>
+                  <Select.Item value="active">{t("common.active")}</Select.Item>
+                  <Select.Item value="inactive">{t("common.inactive")}</Select.Item>
+                </Select.Content>
+              </Select.Root>
+
+              <Select.Root
+                value={rootFilter}
+                onValueChange={(value) => setRootFilter(value as BooleanFilter)}
+              >
+                <Select.Trigger placeholder={t("admin.orgTypes.allRoot")} style={{ minWidth: 160 }} />
+                <Select.Content>
+                  <Select.Item value="all">{t("admin.orgTypes.allRoot")}</Select.Item>
+                  <Select.Item value="yes">{t("common.yes")}</Select.Item>
+                  <Select.Item value="no">{t("common.no")}</Select.Item>
+                </Select.Content>
+              </Select.Root>
+
+              <Select.Root
+                value={regionalFilter}
+                onValueChange={(value) => setRegionalFilter(value as BooleanFilter)}
+              >
+                <Select.Trigger placeholder={t("admin.orgTypes.allRegional")} style={{ minWidth: 180 }} />
+                <Select.Content>
+                  <Select.Item value="all">{t("admin.orgTypes.allRegional")}</Select.Item>
+                  <Select.Item value="yes">{t("common.yes")}</Select.Item>
+                  <Select.Item value="no">{t("common.no")}</Select.Item>
+                </Select.Content>
+              </Select.Root>
+
+              {hasActiveFilters && (
+                <Button variant="soft" color="gray" onClick={resetFilters}>
+                  {t("admin.orgTypes.resetFilters")}
+                </Button>
+              )}
+            </Flex>
+          </Card>
+        )}
+
         <Card size="3">
           {loading ? (
             <LoadingBlock message={t("admin.orgTypes.loading")} />
+          ) : types.length === 0 ? (
+            <EmptyBlock
+              title={t("admin.orgTypes.emptyTitle")}
+              description={t("admin.orgTypes.emptyDescription")}
+            />
+          ) : filteredTypes.length === 0 ? (
+            <EmptyBlock
+              title={t("admin.orgTypes.filterNoResults")}
+              description={t("admin.orgTypes.searchPlaceholder")}
+            />
           ) : (
             <Table.Root variant="surface">
               <Table.Header>
@@ -150,7 +275,7 @@ export default function AdminOrgTypesPage() {
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {types.map((type) => (
+                {filteredTypes.map((type) => (
                   <Table.Row key={type.id || type.code}>
                     <Table.Cell>
                       <Text size="2" style={{ fontFamily: "var(--font-geist-mono)" }}>

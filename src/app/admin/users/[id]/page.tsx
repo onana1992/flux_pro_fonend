@@ -158,6 +158,10 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                     value={user.active ? t("common.active") : t("common.inactive")}
                   />
                   <DetailRow
+                    label={t("admin.users.organizationHead")}
+                    value={user.organizationHead ? t("common.yes") : t("common.no")}
+                  />
+                  <DetailRow
                     label={t("admin.users.passwordStatus")}
                     value={
                       user.mustChangePassword

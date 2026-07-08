@@ -71,6 +71,7 @@ export function UserFormPage({ userId }: { userId?: string }) {
   const [organizationId, setOrganizationId] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [active, setActive] = useState(true);
+  const [organizationHead, setOrganizationHead] = useState(false);
   const [temporaryPassword, setTemporaryPassword] = useState("");
 
   const flatOrgs = useMemo(() => flattenOrgs(orgs), [orgs]);
@@ -92,6 +93,7 @@ export function UserFormPage({ userId }: { userId?: string }) {
           setOrganizationId(user.organization.id);
           setJobTitle(user.jobTitle ?? "");
           setActive(user.active);
+          setOrganizationHead(user.organizationHead);
         } else if (tree.length > 0) {
           const first = flattenOrgs(tree)[0];
           if (first) setOrganizationId(first.id);
@@ -119,6 +121,7 @@ export function UserFormPage({ userId }: { userId?: string }) {
       organizationId,
       jobTitle: jobTitle || undefined,
       active,
+      organizationHead,
       ...(temporaryPassword.trim() ? { temporaryPassword: temporaryPassword.trim() } : {}),
     };
     try {
@@ -251,6 +254,10 @@ export function UserFormPage({ userId }: { userId?: string }) {
                 <Flex align="center" gap="2">
                   <Switch checked={active} onCheckedChange={setActive} />
                   <Text size="2">{t("common.active")}</Text>
+                </Flex>
+                <Flex align="center" gap="2">
+                  <Switch checked={organizationHead} onCheckedChange={setOrganizationHead} />
+                  <Text size="2">{t("admin.users.organizationHead")}</Text>
                 </Flex>
                 <Flex gap="3" justify="end">
                   <Button type="button" variant="soft" onClick={() => router.push("/admin/users")}>

@@ -383,6 +383,7 @@ export interface FilePassageCircuit {
   templateName?: string | null;
   currentStepOrder?: number | null;
   currentHolder?: CurrentHolder | null;
+  currentHolders?: CurrentHolder[];
   passages: PassageStep[];
 }
 

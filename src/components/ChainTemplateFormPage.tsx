@@ -93,14 +93,25 @@ function toWorkingDays(step: ChainStepTemplate): number {
 
 function validateSteps(steps: ChainStepTemplate[], totalDelayDays: number): string | null {
   if (steps.length < 2) return "minSteps";
-  const ordered = [...steps].sort((a, b) => a.stepOrder - b.stepOrder);
-  for (let i = 0; i < ordered.length; i++) {
-    if (ordered[i].stepOrder !== i + 1) return "orderGap";
+  const stages = [...new Set(steps.map((s) => s.stepOrder))].sort((a, b) => a - b);
+  for (let i = 0; i < stages.length; i++) {
+    if (stages[i] !== i + 1) return "orderGap";
   }
-  const closures = ordered.filter((s) => s.closureStep);
+  const closures = steps.filter((s) => s.closureStep);
   if (closures.length !== 1) return "closure";
-  if (closures[0].delayValue !== 0) return "closureDelay";
-  const sum = ordered.filter((s) => !s.closureStep).reduce((acc, s) => acc + toWorkingDays(s), 0);
+  const closure = closures[0];
+  if (closure.delayValue !== 0) return "closureDelay";
+  const lastStage = stages[stages.length - 1];
+  const lastStageSteps = steps.filter((s) => s.stepOrder === lastStage);
+  if (closure.stepOrder !== lastStage || lastStageSteps.length !== 1) return "parallelClosure";
+  const sum = stages
+    .filter((stage) => stage !== lastStage)
+    .reduce((acc, stage) => {
+      const stageMax = Math.max(
+        ...steps.filter((s) => s.stepOrder === stage).map((s) => toWorkingDays(s)),
+      );
+      return acc + stageMax;
+    }, 0);
   if (sum > totalDelayDays) return "delaySum";
   return null;
 }
@@ -128,10 +139,18 @@ export function ChainTemplateFormPage({ mode, template }: ChainTemplateFormPageP
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const stepSum = useMemo(
-    () => steps.filter((s) => !s.closureStep).reduce((acc, s) => acc + toWorkingDays(s), 0),
-    [steps],
-  );
+  const stepSum = useMemo(() => {
+    const stages = [...new Set(steps.map((s) => s.stepOrder))].sort((a, b) => a - b);
+    const lastStage = stages[stages.length - 1];
+    return stages
+      .filter((stage) => stage !== lastStage)
+      .reduce((acc, stage) => {
+        const stageMax = Math.max(
+          ...steps.filter((s) => s.stepOrder === stage).map((s) => toWorkingDays(s)),
+        );
+        return acc + stageMax;
+      }, 0);
+  }, [steps]);
 
   useEffect(() => {
     getFileTypes()
@@ -147,16 +166,30 @@ export function ChainTemplateFormPage({ mode, template }: ChainTemplateFormPageP
     setSteps((prev) => {
       const withoutClosure = prev.filter((s) => !s.closureStep);
       const closure = prev.find((s) => s.closureStep);
-      const next = emptyStep(withoutClosure.length + 1);
-      return [...withoutClosure, next, ...(closure ? [{ ...closure, stepOrder: withoutClosure.length + 2 }] : [])];
+      const maxStage = withoutClosure.reduce((max, s) => Math.max(max, s.stepOrder), 0);
+      const nextStage = maxStage + 1;
+      const next = emptyStep(nextStage);
+      return [
+        ...withoutClosure,
+        next,
+        ...(closure ? [{ ...closure, stepOrder: nextStage + 1 }] : []),
+      ];
+    });
+  }
+
+  function addParallelStep(index: number) {
+    setSteps((prev) => {
+      const ref = prev[index];
+      if (!ref || ref.closureStep) return prev;
+      const parallel = emptyStep(ref.stepOrder);
+      const next = [...prev];
+      next.splice(index + 1, 0, parallel);
+      return next;
     });
   }
 
   function removeStep(index: number) {
-    setSteps((prev) => {
-      const next = prev.filter((_, i) => i !== index);
-      return next.map((s, i) => ({ ...s, stepOrder: i + 1 }));
-    });
+    setSteps((prev) => prev.filter((_, i) => i !== index));
   }
 
   function setClosureStep(index: number) {
@@ -312,7 +345,7 @@ export function ChainTemplateFormPage({ mode, template }: ChainTemplateFormPageP
               <Table.Root variant="surface">
                 <Table.Header>
                   <Table.Row>
-                    <Table.ColumnHeaderCell>#</Table.ColumnHeaderCell>
+                    <Table.ColumnHeaderCell>{t("admin.chainTemplates.stageOrder")}</Table.ColumnHeaderCell>
                     <Table.ColumnHeaderCell>{t("admin.chainTemplates.stepLabel")}</Table.ColumnHeaderCell>
                     <Table.ColumnHeaderCell>{t("admin.chainTemplates.responsibleRole")}</Table.ColumnHeaderCell>
                     <Table.ColumnHeaderCell>{t("admin.chainTemplates.delayValue")}</Table.ColumnHeaderCell>
@@ -324,10 +357,26 @@ export function ChainTemplateFormPage({ mode, template }: ChainTemplateFormPageP
                 </Table.Header>
                 <Table.Body>
                   {steps
-                    .sort((a, b) => a.stepOrder - b.stepOrder)
-                    .map((step, index) => (
+                    .map((step, index) => ({ step, index }))
+                    .sort((a, b) =>
+                      a.step.stepOrder !== b.step.stepOrder
+                        ? a.step.stepOrder - b.step.stepOrder
+                        : a.step.label.localeCompare(b.step.label),
+                    )
+                    .map(({ step, index }) => (
                       <Table.Row key={index}>
-                        <Table.Cell>{step.stepOrder}</Table.Cell>
+                        <Table.Cell>
+                          <TextField.Root
+                            type="number"
+                            min={1}
+                            value={step.stepOrder}
+                            disabled={step.closureStep}
+                            onChange={(e) =>
+                              updateStep(index, { stepOrder: Number(e.target.value) || 1 })
+                            }
+                            style={{ width: 64 }}
+                          />
+                        </Table.Cell>
                         <Table.Cell>
                           <TextField.Root
                             value={step.label}
@@ -392,11 +441,24 @@ export function ChainTemplateFormPage({ mode, template }: ChainTemplateFormPageP
                           />
                         </Table.Cell>
                         <Table.Cell>
-                          {steps.length > 2 && (
-                            <Button type="button" variant="ghost" color="red" onClick={() => removeStep(index)}>
-                              <TrashIcon />
-                            </Button>
-                          )}
+                          <Flex gap="1">
+                            {!step.closureStep && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="1"
+                                onClick={() => addParallelStep(index)}
+                                title={t("admin.chainTemplates.addParallel")}
+                              >
+                                <PlusIcon />
+                              </Button>
+                            )}
+                            {steps.length > 2 && (
+                              <Button type="button" variant="ghost" color="red" onClick={() => removeStep(index)}>
+                                <TrashIcon />
+                              </Button>
+                            )}
+                          </Flex>
                         </Table.Cell>
                       </Table.Row>
                     ))}

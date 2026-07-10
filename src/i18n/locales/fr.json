@@ -385,7 +385,10 @@
       "systemTemplate": "Système",
       "headerSection": "En-tête",
       "addStep": "Ajouter un maillon",
-      "delaySumHint": "Somme des délais : {{sum}} / {{total}} jours ouvrés",
+      "addParallel": "Maillon parallèle",
+      "stageOrder": "Étape",
+      "parallelStage": "Maillons parallèles (jonction ET)",
+      "delaySumHint": "Somme des délais (max par étape) : {{sum}} / {{total}} jours ouvrés",
       "status": "Statut",
       "allStatuses": "Tous les statuts",
       "allFileTypes": "Tous les types",
@@ -407,7 +410,8 @@
       "activateSuccess": "Template réactivé.",
       "errors": {
         "minSteps": "Au moins deux maillons sont requis.",
-        "orderGap": "Les numéros d'ordre doivent être consécutifs (1, 2, 3…).",
+        "orderGap": "Les numéros d'étape doivent être consécutifs (1, 2, 3…).",
+        "parallelClosure": "Le maillon de clôture doit être seul dans la dernière étape.",
         "closure": "Un seul maillon de clôture est autorisé.",
         "closureDelay": "Le maillon de clôture doit avoir un délai de 0.",
         "delaySum": "La somme des délais dépasse le délai total."

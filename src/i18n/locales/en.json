@@ -385,7 +385,10 @@
       "systemTemplate": "System",
       "headerSection": "Header",
       "addStep": "Add step",
-      "delaySumHint": "Delay sum: {{sum}} / {{total}} working days",
+      "addParallel": "Parallel step",
+      "stageOrder": "Stage",
+      "parallelStage": "Parallel steps (AND join)",
+      "delaySumHint": "Delay sum (max per stage): {{sum}} / {{total}} working days",
       "status": "Status",
       "allStatuses": "All statuses",
       "allFileTypes": "All file types",
@@ -407,7 +410,8 @@
       "activateSuccess": "Template reactivated.",
       "errors": {
         "minSteps": "At least two steps are required.",
-        "orderGap": "Step orders must be consecutive (1, 2, 3…).",
+        "orderGap": "Stage numbers must be consecutive (1, 2, 3…).",
+        "parallelClosure": "The closure step must be alone in the last stage.",
         "closure": "Exactly one closure step is allowed.",
         "closureDelay": "Closure step must have zero delay.",
         "delaySum": "Sum of delays exceeds total delay."

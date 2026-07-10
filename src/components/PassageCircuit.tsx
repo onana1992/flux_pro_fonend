@@ -1128,10 +1128,13 @@ export function PassageCircuit({
 
   const canTransmit = canSeePermission(user, "FILES:TRANSMIT");
   const canInitialize = canSeePermission(user, "FILES:UPDATE");
-  const activeStep = circuit?.passages.find(
-    (p) => p.status === "IN_PROGRESS" || p.status === "SUSPENDED",
+  const activeSteps =
+    circuit?.passages.filter((p) => p.status === "IN_PROGRESS" || p.status === "SUSPENDED") ?? [];
+  const activeStep =
+    activeSteps.find((p) => p.responsibleUserId && p.responsibleUserId === user?.id) ?? activeSteps[0];
+  const isResponsible = Boolean(
+    activeSteps.some((p) => p.responsibleUserId && p.responsibleUserId === user?.id),
   );
-  const isResponsible = Boolean(activeStep?.responsibleUserId && activeStep.responsibleUserId === user?.id);
   const isManager =
     user?.role === "DIRECTOR" ||
     user?.role === "SERVICE_HEAD" ||
@@ -1140,7 +1143,7 @@ export function PassageCircuit({
     user?.role === "BUSINESS_ADMIN";
   const canAct =
     canTransmit &&
-    activeStep &&
+    activeSteps.length > 0 &&
     (isResponsible || isManager || hasPermission(user, "FILES:UPDATE"));
 
   const load = useCallback(async () => {
@@ -1441,48 +1444,66 @@ export function PassageCircuit({
           progress={{ done: doneCount, total: totalCount }}
         />
 
-        {circuit.currentHolder && (
-          <Box
-            p="3"
-            style={{
-              borderRadius: "var(--radius-3)",
-              background: circuit.currentHolder.overdue ? "var(--red-a3)" : "var(--accent-a3)",
-              border: `1px solid ${circuit.currentHolder.overdue ? "var(--red-a7)" : "var(--accent-a6)"}`,
-            }}
-          >
-            <Flex justify="between" align="start" gap="2" wrap="wrap">
-              <Flex direction="column" gap="1">
-                <Flex align="center" gap="2">
-                  <PersonIcon
-                    width={14}
-                    height={14}
-                    color={circuit.currentHolder.overdue ? "var(--red-11)" : "var(--accent-11)"}
-                  />
-                  <Text size="2" weight="medium">
-                    {t("files.circuit.currentHolder", {
-                      name: circuit.currentHolder.fullName,
-                      days: circuit.currentHolder.workingDaysHeld,
-                    })}
+        {(circuit.currentHolders?.length ? circuit.currentHolders : circuit.currentHolder ? [circuit.currentHolder] : []).map(
+          (holder) => (
+            <Box
+              key={`${holder.userId}-${holder.stepLabel}`}
+              p="3"
+              mb="2"
+              style={{
+                borderRadius: "var(--radius-3)",
+                background: holder.overdue ? "var(--red-a3)" : "var(--accent-a3)",
+                border: `1px solid ${holder.overdue ? "var(--red-a7)" : "var(--accent-a6)"}`,
+              }}
+            >
+              <Flex justify="between" align="start" gap="2" wrap="wrap">
+                <Flex direction="column" gap="1">
+                  <Flex align="center" gap="2">
+                    <PersonIcon
+                      width={14}
+                      height={14}
+                      color={holder.overdue ? "var(--red-11)" : "var(--accent-11)"}
+                    />
+                    <Text size="2" weight="medium">
+                      {t("files.circuit.currentHolder", {
+                        name: holder.fullName,
+                        days: holder.workingDaysHeld,
+                      })}
+                    </Text>
+                  </Flex>
+                  <Text size="1" color="gray">
+                    {holder.stepLabel} · {holder.organizationCode}
                   </Text>
                 </Flex>
-                <Text size="1" color="gray">
-                  {circuit.currentHolder.stepLabel} · {circuit.currentHolder.organizationCode}
-                </Text>
+                {activeSteps.find((s) => s.label === holder.stepLabel) && (
+                  <Flex gap="2">
+                    <Button
+                      size="1"
+                      variant="soft"
+                      onClick={() => {
+                        const step = activeSteps.find((s) => s.label === holder.stepLabel);
+                        if (step) setDetailStep(step);
+                      }}
+                    >
+                      <EyeOpenIcon />
+                      {t("files.circuit.viewStep")}
+                    </Button>
+                    <Button
+                      size="1"
+                      variant="soft"
+                      onClick={() => {
+                        const step = activeSteps.find((s) => s.label === holder.stepLabel);
+                        if (step) setUserStep(step);
+                      }}
+                    >
+                      <PersonIcon />
+                      {t("files.circuit.viewUser")}
+                    </Button>
+                  </Flex>
+                )}
               </Flex>
-              {activeStep && (
-                <Flex gap="2">
-                  <Button size="1" variant="soft" onClick={() => setDetailStep(activeStep)}>
-                    <EyeOpenIcon />
-                    {t("files.circuit.viewStep")}
-                  </Button>
-                  <Button size="1" variant="soft" onClick={() => setUserStep(activeStep)}>
-                    <PersonIcon />
-                    {t("files.circuit.viewUser")}
-                  </Button>
-                </Flex>
-              )}
-            </Flex>
-          </Box>
+            </Box>
+          ),
         )}
 
         {error && <StatusAlert variant="error" message={error} />}

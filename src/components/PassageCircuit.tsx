@@ -229,16 +229,80 @@ function MetaChip({
   );
 }
 
+function groupPassagesByStage(passages: PassageStep[]): { stageOrder: number; steps: PassageStep[] }[] {
+  const ordered = [...passages].sort((a, b) =>
+    a.stepOrder !== b.stepOrder ? a.stepOrder - b.stepOrder : a.label.localeCompare(b.label),
+  );
+  const stages: { stageOrder: number; steps: PassageStep[] }[] = [];
+  for (const step of ordered) {
+    const last = stages[stages.length - 1];
+    if (last && last.stageOrder === step.stepOrder) {
+      last.steps.push(step);
+    } else {
+      stages.push({ stageOrder: step.stepOrder, steps: [step] });
+    }
+  }
+  return stages;
+}
+
+function groupTemplateStepsByStage(
+  steps: ChainStepTemplate[],
+): { stageOrder: number; steps: ChainStepTemplate[] }[] {
+  const ordered = [...steps].sort((a, b) =>
+    a.stepOrder !== b.stepOrder ? a.stepOrder - b.stepOrder : a.label.localeCompare(b.label),
+  );
+  const stages: { stageOrder: number; steps: ChainStepTemplate[] }[] = [];
+  for (const step of ordered) {
+    const last = stages[stages.length - 1];
+    if (last && last.stageOrder === step.stepOrder) {
+      last.steps.push(step);
+    } else {
+      stages.push({ stageOrder: step.stepOrder, steps: [step] });
+    }
+  }
+  return stages;
+}
+
+function isManagerRole(role?: UserRole | null): boolean {
+  return (
+    role === "DIRECTOR" ||
+    role === "SERVICE_HEAD" ||
+    role === "REGIONAL_DIRECTOR" ||
+    role === "SUPER_ADMIN" ||
+    role === "BUSINESS_ADMIN" ||
+    role === "SECRETARY_GENERAL" ||
+    role === "EXECUTIVE_OFFICE"
+  );
+}
+
+function canActOnPassageStep(
+  step: PassageStep,
+  user: User | null | undefined,
+  canTransmit: boolean,
+  fileStatus: FileStatus,
+): boolean {
+  if (!canTransmit || (fileStatus !== "IN_PROGRESS" && fileStatus !== "ON_HOLD")) return false;
+  if (step.status !== "IN_PROGRESS" && step.status !== "SUSPENDED") return false;
+  if (step.responsibleUserId && step.responsibleUserId === user?.id) return true;
+  return isManagerRole(user?.role) || hasPermission(user, "FILES:UPDATE");
+}
+
 function PassageStepRow({
   step,
   isLast,
   onOpenStep,
   onOpenUser,
+  actionSlot,
+  hideConnector,
+  showStepOrder = true,
 }: {
   step: PassageStep;
   isLast: boolean;
   onOpenStep: (step: PassageStep) => void;
   onOpenUser: (step: PassageStep) => void;
+  actionSlot?: ReactNode;
+  hideConnector?: boolean;
+  showStepOrder?: boolean;
 }) {
   const { t } = useTranslation();
   const isActive = step.status === "IN_PROGRESS" || step.status === "SUSPENDED";
@@ -246,26 +310,28 @@ function PassageStepRow({
 
   return (
     <Flex gap="3" align="stretch">
-      <Flex direction="column" align="center" style={{ width: 28 }}>
-        <StepIcon status={step.status} active={isActive} />
-        {!isLast && (
-          <Box
-            style={{
-              width: 2,
-              flex: 1,
-              minHeight: 20,
-              marginTop: 4,
-              marginBottom: 4,
-              background:
-                step.status === "COMPLETED" ? "var(--green-a7)" : "var(--gray-a5)",
-              borderRadius: 1,
-            }}
-          />
-        )}
-      </Flex>
+      {!hideConnector && (
+        <Flex direction="column" align="center" style={{ width: 28 }}>
+          <StepIcon status={step.status} active={isActive} />
+          {!isLast && (
+            <Box
+              style={{
+                width: 2,
+                flex: 1,
+                minHeight: 20,
+                marginTop: 4,
+                marginBottom: 4,
+                background:
+                  step.status === "COMPLETED" ? "var(--green-a7)" : "var(--gray-a5)",
+                borderRadius: 1,
+              }}
+            />
+          )}
+        </Flex>
+      )}
 
       <Box
-        mb={isLast ? "0" : "3"}
+        mb={isLast || hideConnector ? "0" : "3"}
         style={{
           flex: 1,
           minWidth: 0,
@@ -302,9 +368,16 @@ function PassageStepRow({
           }}
         >
           <Flex gap="2" align="start" style={{ minWidth: 0, flex: 1 }}>
-            <Badge size="1" variant="solid" color={statusColor}>
-              {step.stepOrder}
-            </Badge>
+            {showStepOrder && (
+              <Badge size="1" variant="solid" color={statusColor}>
+                {step.stepOrder}
+              </Badge>
+            )}
+            {hideConnector && (
+              <Box style={{ flexShrink: 0 }}>
+                <StepIcon status={step.status} active={isActive} />
+              </Box>
+            )}
             <Flex direction="column" gap="1" style={{ minWidth: 0 }}>
               <Text size="2" weight="bold" style={{ lineHeight: 1.3 }}>
                 {step.label}
@@ -457,6 +530,8 @@ function PassageStepRow({
               </Text>
             )}
           </Flex>
+
+          {actionSlot}
         </Flex>
       </Box>
     </Flex>
@@ -1096,6 +1171,184 @@ function AssignmentStepCard({
   );
 }
 
+function PassageActionPanel({
+  step,
+  isParallel,
+  busy,
+  comment,
+  returnReason,
+  suspendReason,
+  showReturn,
+  showSuspend,
+  onCommentChange,
+  onReturnReasonChange,
+  onSuspendReasonChange,
+  onShowReturn,
+  onShowSuspend,
+  onTransmit,
+  onReturn,
+  onSuspend,
+  onResume,
+}: {
+  step: PassageStep;
+  isParallel: boolean;
+  busy: boolean;
+  comment: string;
+  returnReason: string;
+  suspendReason: string;
+  showReturn: boolean;
+  showSuspend: boolean;
+  onCommentChange: (value: string) => void;
+  onReturnReasonChange: (value: string) => void;
+  onSuspendReasonChange: (value: string) => void;
+  onShowReturn: (show: boolean) => void;
+  onShowSuspend: (show: boolean) => void;
+  onTransmit: (e: FormEvent) => void;
+  onReturn: (e: FormEvent) => void;
+  onSuspend: (e: FormEvent) => void;
+  onResume: () => void;
+}) {
+  const { t } = useTranslation();
+  const markDoneLabel = isParallel ? t("files.circuit.markDone") : t("files.circuit.transmit");
+
+  return (
+    <Box
+      mt="1"
+      p="3"
+      style={{
+        borderRadius: "var(--radius-2)",
+        background: "var(--accent-a2)",
+        border: "1px solid var(--accent-a5)",
+      }}
+    >
+      {step.status === "SUSPENDED" ? (
+        <Button onClick={onResume} disabled={busy} size="2" style={{ width: "100%" }}>
+          <ResumeIcon />
+          {t("files.circuit.resume")}
+        </Button>
+      ) : (
+        <Flex direction="column" gap="3">
+          <Text size="2" weight="medium">
+            {markDoneLabel}
+          </Text>
+          {isParallel && (
+            <Text size="1" color="gray">
+              {t("files.circuit.markDoneHint")}
+            </Text>
+          )}
+          <form onSubmit={onTransmit}>
+            <Flex direction="column" gap="2">
+              <TextArea
+                value={comment}
+                onChange={(e) => onCommentChange(e.target.value)}
+                placeholder={t("files.circuit.transmitComment")}
+                rows={2}
+              />
+              <Button type="submit" disabled={busy} size="2">
+                <CheckCircledIcon />
+                {markDoneLabel}
+              </Button>
+            </Flex>
+          </form>
+
+          <Separator size="4" />
+
+          <Flex gap="2" wrap="wrap">
+            {!showReturn ? (
+              <Button
+                variant="soft"
+                color="orange"
+                onClick={() => {
+                  onShowReturn(true);
+                  onShowSuspend(false);
+                }}
+                disabled={busy}
+              >
+                <ResetIcon />
+                {t("files.circuit.return")}
+              </Button>
+            ) : null}
+            {!showSuspend ? (
+              <Button
+                variant="soft"
+                color="gray"
+                onClick={() => {
+                  onShowSuspend(true);
+                  onShowReturn(false);
+                }}
+                disabled={busy}
+              >
+                <TimerIcon />
+                {t("files.circuit.suspend")}
+              </Button>
+            ) : null}
+          </Flex>
+
+          {showReturn && (
+            <form onSubmit={onReturn}>
+              <Flex direction="column" gap="2">
+                <TextArea
+                  value={returnReason}
+                  onChange={(e) => onReturnReasonChange(e.target.value)}
+                  placeholder={t("files.circuit.returnReason")}
+                  minLength={20}
+                  required
+                  rows={3}
+                />
+                <Flex gap="2" align="center" wrap="wrap" mt="1">
+                  <Button type="submit" size="2" color="orange" variant="soft" disabled={busy}>
+                    {t("files.circuit.confirmReturn")}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="2"
+                    variant="soft"
+                    color="gray"
+                    disabled={busy}
+                    onClick={() => onShowReturn(false)}
+                  >
+                    {t("common.cancel")}
+                  </Button>
+                </Flex>
+              </Flex>
+            </form>
+          )}
+
+          {showSuspend && (
+            <form onSubmit={onSuspend}>
+              <Flex direction="column" gap="2">
+                <TextArea
+                  value={suspendReason}
+                  onChange={(e) => onSuspendReasonChange(e.target.value)}
+                  placeholder={t("files.circuit.suspendReason")}
+                  minLength={10}
+                  required
+                  rows={3}
+                />
+                <Flex gap="2" align="center" wrap="wrap" mt="1">
+                  <Button type="submit" size="2" variant="soft" disabled={busy}>
+                    {t("files.circuit.confirmSuspend")}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="2"
+                    variant="soft"
+                    color="gray"
+                    disabled={busy}
+                    onClick={() => onShowSuspend(false)}
+                  >
+                    {t("common.cancel")}
+                  </Button>
+                </Flex>
+              </Flex>
+            </form>
+          )}
+        </Flex>
+      )}
+    </Box>
+  );
+}
+
 export function PassageCircuit({
   fileId,
   fileStatus,
@@ -1125,26 +1378,32 @@ export function PassageCircuit({
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [detailStep, setDetailStep] = useState<PassageStep | null>(null);
   const [userStep, setUserStep] = useState<PassageStep | null>(null);
+  const [actionStepId, setActionStepId] = useState<string | null>(null);
 
   const canTransmit = canSeePermission(user, "FILES:TRANSMIT");
   const canInitialize = canSeePermission(user, "FILES:UPDATE");
   const activeSteps =
     circuit?.passages.filter((p) => p.status === "IN_PROGRESS" || p.status === "SUSPENDED") ?? [];
-  const activeStep =
-    activeSteps.find((p) => p.responsibleUserId && p.responsibleUserId === user?.id) ?? activeSteps[0];
-  const isResponsible = Boolean(
-    activeSteps.some((p) => p.responsibleUserId && p.responsibleUserId === user?.id),
+  const preferredActionStep =
+    activeSteps.find((p) => p.responsibleUserId && p.responsibleUserId === user?.id) ??
+    activeSteps.find((p) => canActOnPassageStep(p, user, canTransmit, fileStatus)) ??
+    activeSteps[0];
+  const actionStep =
+    (actionStepId ? activeSteps.find((p) => p.id === actionStepId) : null) ?? preferredActionStep;
+
+  useEffect(() => {
+    if (!actionStepId) return;
+    const stillActive = circuit?.passages.some(
+      (p) =>
+        p.id === actionStepId && (p.status === "IN_PROGRESS" || p.status === "SUSPENDED"),
+    );
+    if (!stillActive) setActionStepId(null);
+  }, [actionStepId, circuit?.passages]);
+
+  const actionableSteps = activeSteps.filter((p) =>
+    canActOnPassageStep(p, user, canTransmit, fileStatus),
   );
-  const isManager =
-    user?.role === "DIRECTOR" ||
-    user?.role === "SERVICE_HEAD" ||
-    user?.role === "REGIONAL_DIRECTOR" ||
-    user?.role === "SUPER_ADMIN" ||
-    user?.role === "BUSINESS_ADMIN";
-  const canAct =
-    canTransmit &&
-    activeSteps.length > 0 &&
-    (isResponsible || isManager || hasPermission(user, "FILES:UPDATE"));
+  const canActAnywhere = actionableSteps.length > 0;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1230,27 +1489,27 @@ export function PassageCircuit({
     }
   }
 
-  async function handleTransmit(e: FormEvent) {
+  async function handleTransmit(e: FormEvent, step: PassageStep) {
     e.preventDefault();
-    if (!activeStep) return;
-    await runAction(() => transmitFilePassage(fileId, activeStep.id, { comment: comment || undefined }));
+    await runAction(() => transmitFilePassage(fileId, step.id, { comment: comment || undefined }));
     setComment("");
+    setActionStepId(null);
   }
 
-  async function handleReturn(e: FormEvent) {
+  async function handleReturn(e: FormEvent, step: PassageStep) {
     e.preventDefault();
-    if (!activeStep) return;
-    await runAction(() => returnFilePassage(fileId, activeStep.id, { reason: returnReason }));
+    await runAction(() => returnFilePassage(fileId, step.id, { reason: returnReason }));
     setReturnReason("");
     setShowReturn(false);
+    setActionStepId(null);
   }
 
-  async function handleSuspend(e: FormEvent) {
+  async function handleSuspend(e: FormEvent, step: PassageStep) {
     e.preventDefault();
-    if (!activeStep) return;
-    await runAction(() => suspendFilePassage(fileId, activeStep.id, { reason: suspendReason }));
+    await runAction(() => suspendFilePassage(fileId, step.id, { reason: suspendReason }));
     setSuspendReason("");
     setShowSuspend(false);
+    setActionStepId(null);
   }
 
   async function handleInitialize(e: FormEvent) {
@@ -1275,9 +1534,9 @@ export function PassageCircuit({
     );
   }
 
-  async function handleResume() {
-    if (!activeStep) return;
-    await runAction(() => resumeFilePassage(fileId, activeStep.id));
+  async function handleResume(step: PassageStep) {
+    await runAction(() => resumeFilePassage(fileId, step.id));
+    setActionStepId(null);
   }
 
   if (fileStatus === "DRAFT") {
@@ -1383,27 +1642,33 @@ export function PassageCircuit({
                         {assignedCount}/{totalSteps}
                       </Badge>
                     </Flex>
-                    {selectedTemplate.steps
-                      .slice()
-                      .sort((a, b) => a.stepOrder - b.stepOrder)
-                      .map((step) => (
-                        <AssignmentStepCard
-                          key={step.id || step.stepOrder}
-                          step={step}
-                          candidates={candidatesByRole[step.responsibleRole] ?? []}
-                          value={step.id ? assignments[step.id] ?? "" : ""}
-                          onChange={(userId) =>
-                            step.id &&
-                            setAssignments((prev) => ({
-                              ...prev,
-                              [step.id!]: userId,
-                            }))
-                          }
-                          disabled={busy}
-                          selectUserLabel={t("files.circuit.selectUser")}
-                          noCandidatesLabel={t("files.circuit.noCandidates")}
-                        />
-                      ))}
+                    {groupTemplateStepsByStage(selectedTemplate.steps).map((stage) => (
+                      <Flex key={stage.stageOrder} direction="column" gap="2">
+                        {stage.steps.length > 1 && (
+                          <Text size="1" color="gray">
+                            {t("files.circuit.parallelStage")}
+                          </Text>
+                        )}
+                        {stage.steps.map((step) => (
+                          <AssignmentStepCard
+                            key={step.id || `${step.stepOrder}-${step.label}`}
+                            step={step}
+                            candidates={candidatesByRole[step.responsibleRole] ?? []}
+                            value={step.id ? assignments[step.id] ?? "" : ""}
+                            onChange={(userId) =>
+                              step.id &&
+                              setAssignments((prev) => ({
+                                ...prev,
+                                [step.id!]: userId,
+                              }))
+                            }
+                            disabled={busy}
+                            selectUserLabel={t("files.circuit.selectUser")}
+                            noCandidatesLabel={t("files.circuit.noCandidates")}
+                          />
+                        ))}
+                      </Flex>
+                    ))}
                   </Flex>
                 )}
 
@@ -1430,6 +1695,55 @@ export function PassageCircuit({
 
   const doneCount = circuit.passages.filter((p) => p.status === "COMPLETED").length;
   const totalCount = circuit.passages.length;
+  const stages = groupPassagesByStage(circuit.passages);
+
+  function renderActionSlot(step: PassageStep, isParallel: boolean) {
+    if (!canActOnPassageStep(step, user, canTransmit, fileStatus)) return undefined;
+    const isOpen = actionStep?.id === step.id;
+    if (!isOpen) {
+      return (
+        <Button
+          size="2"
+          variant="soft"
+          disabled={busy}
+          onClick={() => {
+            setActionStepId(step.id);
+            setShowReturn(false);
+            setShowSuspend(false);
+            setComment("");
+          }}
+        >
+          <CheckCircledIcon />
+          {step.status === "SUSPENDED"
+            ? t("files.circuit.resume")
+            : isParallel
+              ? t("files.circuit.markDone")
+              : t("files.circuit.transmit")}
+        </Button>
+      );
+    }
+    return (
+      <PassageActionPanel
+        step={step}
+        isParallel={isParallel}
+        busy={busy}
+        comment={comment}
+        returnReason={returnReason}
+        suspendReason={suspendReason}
+        showReturn={showReturn}
+        showSuspend={showSuspend}
+        onCommentChange={setComment}
+        onReturnReasonChange={setReturnReason}
+        onSuspendReasonChange={setSuspendReason}
+        onShowReturn={setShowReturn}
+        onShowSuspend={setShowSuspend}
+        onTransmit={(e) => handleTransmit(e, step)}
+        onReturn={(e) => handleReturn(e, step)}
+        onSuspend={(e) => handleSuspend(e, step)}
+        onResume={() => handleResume(step)}
+      />
+    );
+  }
 
   return (
     <Card size="3">
@@ -1509,15 +1823,116 @@ export function PassageCircuit({
         {error && <StatusAlert variant="error" message={error} />}
 
         <Box>
-          {circuit.passages.map((step, index) => (
-            <PassageStepRow
-              key={step.id}
-              step={step}
-              isLast={index === circuit.passages.length - 1}
-              onOpenStep={setDetailStep}
-              onOpenUser={setUserStep}
-            />
-          ))}
+          {stages.map((stage, stageIndex) => {
+            const isParallel = stage.steps.length > 1;
+            const isLastStage = stageIndex === stages.length - 1;
+            const stageDone = stage.steps.filter((s) => s.status === "COMPLETED").length;
+            const stageTotal = stage.steps.length;
+            const stageComplete = stageDone === stageTotal;
+            const stageActive = stage.steps.some(
+              (s) => s.status === "IN_PROGRESS" || s.status === "SUSPENDED",
+            );
+
+            if (!isParallel) {
+              const step = stage.steps[0];
+              return (
+                <PassageStepRow
+                  key={step.id}
+                  step={step}
+                  isLast={isLastStage}
+                  onOpenStep={setDetailStep}
+                  onOpenUser={setUserStep}
+                  actionSlot={renderActionSlot(step, false)}
+                />
+              );
+            }
+
+            return (
+              <Flex key={stage.stageOrder} gap="3" align="stretch" mb={isLastStage ? "0" : "3"}>
+                <Flex direction="column" align="center" style={{ width: 28 }}>
+                  <StepIcon
+                    status={stageComplete ? "COMPLETED" : stageActive ? "IN_PROGRESS" : "PENDING"}
+                    active={stageActive}
+                  />
+                  {!isLastStage && (
+                    <Box
+                      style={{
+                        width: 2,
+                        flex: 1,
+                        minHeight: 20,
+                        marginTop: 4,
+                        marginBottom: 4,
+                        background: stageComplete ? "var(--green-a7)" : "var(--gray-a5)",
+                        borderRadius: 1,
+                      }}
+                    />
+                  )}
+                </Flex>
+
+                <Box style={{ flex: 1, minWidth: 0 }}>
+                  <Flex
+                    direction="column"
+                    gap="3"
+                    p="3"
+                    style={{
+                      borderRadius: "var(--radius-3)",
+                      background: stageActive ? "var(--accent-a2)" : "var(--gray-a2)",
+                      border: `1px solid ${
+                        stageComplete
+                          ? "var(--green-a6)"
+                          : stageActive
+                            ? "var(--accent-a6)"
+                            : "var(--gray-a5)"
+                      }`,
+                    }}
+                  >
+                    <Flex justify="between" align="start" gap="2" wrap="wrap">
+                      <Flex direction="column" gap="1">
+                        <Flex align="center" gap="2" wrap="wrap">
+                          <Badge size="1" variant="solid" color={stageComplete ? "green" : stageActive ? "blue" : "gray"}>
+                            {stage.stageOrder}
+                          </Badge>
+                          <Text size="2" weight="bold">
+                            {t("files.circuit.parallelStage")}
+                          </Text>
+                        </Flex>
+                        <Text size="1" color="gray">
+                          {t("files.circuit.parallelProgress", {
+                            done: stageDone,
+                            total: stageTotal,
+                          })}
+                        </Text>
+                      </Flex>
+                      <Badge size="1" variant="soft" color={stageComplete ? "green" : "blue"}>
+                        {stageDone}/{stageTotal}
+                      </Badge>
+                    </Flex>
+
+                    {stageActive && !stageComplete && (
+                      <Text size="1" color="gray">
+                        {t("files.circuit.parallelAutoAdvance")}
+                      </Text>
+                    )}
+
+                    <Flex direction="column" gap="3">
+                      {stage.steps.map((step) => (
+                        <PassageStepRow
+                          key={step.id}
+                          step={step}
+                          isLast
+                          hideConnector
+                          showStepOrder={false}
+                          onOpenStep={setDetailStep}
+                          onOpenUser={setUserStep}
+                          actionSlot={renderActionSlot(step, true)}
+                        />
+                      ))}
+                    </Flex>
+                  </Flex>
+                </Box>
+              </Flex>
+            );
+          })}
         </Box>
 
         <PassageStepDetailDialog
@@ -1540,138 +1955,29 @@ export function PassageCircuit({
           }}
         />
 
-        {canTransmit && activeStep && !canAct && (fileStatus === "IN_PROGRESS" || fileStatus === "ON_HOLD") && (
-          <Box
-            p="3"
-            style={{
-              borderRadius: "var(--radius-3)",
-              background: "var(--gray-a3)",
-              border: "1px solid var(--gray-a5)",
-            }}
-          >
-            <Text size="2" color="gray" as="p">
-              {t("files.circuit.notResponsible", {
-                name: activeStep.responsibleName ?? t("files.circuit.unassigned"),
-              })}
-            </Text>
-          </Box>
-        )}
-
-        {canAct && activeStep && (fileStatus === "IN_PROGRESS" || fileStatus === "ON_HOLD") && (
-          <Box
-            p="3"
-            style={{
-              borderRadius: "var(--radius-3)",
-              background: "var(--color-panel-solid)",
-              border: "1px solid var(--gray-a5)",
-            }}
-          >
-            {activeStep.status === "SUSPENDED" ? (
-              <Button onClick={handleResume} disabled={busy} size="3" style={{ width: "100%" }}>
-                <ResumeIcon />
-                {t("files.circuit.resume")}
-              </Button>
-            ) : (
-              <Flex direction="column" gap="3">
-                <Text size="2" weight="medium">
-                  {t("files.circuit.transmit")} — {activeStep.label}
-                </Text>
-                <form onSubmit={handleTransmit}>
-                  <Flex direction="column" gap="2">
-                    <TextArea
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                      placeholder={t("files.circuit.transmitComment")}
-                      rows={2}
-                    />
-                    <Button type="submit" disabled={busy} size="3">
-                      {t("files.circuit.transmit")}
-                    </Button>
-                  </Flex>
-                </form>
-
-                <Separator size="4" />
-
-                <Flex gap="2" wrap="wrap">
-                  {!showReturn ? (
-                    <Button
-                      variant="soft"
-                      color="orange"
-                      onClick={() => {
-                        setShowReturn(true);
-                        setShowSuspend(false);
-                      }}
-                      disabled={busy}
-                    >
-                      <ResetIcon />
-                      {t("files.circuit.return")}
-                    </Button>
-                  ) : null}
-                  {!showSuspend ? (
-                    <Button
-                      variant="soft"
-                      color="gray"
-                      onClick={() => {
-                        setShowSuspend(true);
-                        setShowReturn(false);
-                      }}
-                      disabled={busy}
-                    >
-                      <TimerIcon />
-                      {t("files.circuit.suspend")}
-                    </Button>
-                  ) : null}
-                </Flex>
-
-                {showReturn && (
-                  <form onSubmit={handleReturn}>
-                    <Flex direction="column" gap="2">
-                      <TextArea
-                        value={returnReason}
-                        onChange={(e) => setReturnReason(e.target.value)}
-                        placeholder={t("files.circuit.returnReason")}
-                        minLength={20}
-                        required
-                        rows={3}
-                      />
-                      <Flex gap="2">
-                        <Button type="submit" color="orange" variant="soft" disabled={busy}>
-                          {t("files.circuit.confirmReturn")}
-                        </Button>
-                        <Button type="button" variant="ghost" onClick={() => setShowReturn(false)}>
-                          {t("common.cancel")}
-                        </Button>
-                      </Flex>
-                    </Flex>
-                  </form>
-                )}
-
-                {showSuspend && (
-                  <form onSubmit={handleSuspend}>
-                    <Flex direction="column" gap="2">
-                      <TextArea
-                        value={suspendReason}
-                        onChange={(e) => setSuspendReason(e.target.value)}
-                        placeholder={t("files.circuit.suspendReason")}
-                        minLength={10}
-                        required
-                        rows={3}
-                      />
-                      <Flex gap="2">
-                        <Button type="submit" variant="soft" disabled={busy}>
-                          {t("files.circuit.confirmSuspend")}
-                        </Button>
-                        <Button type="button" variant="ghost" onClick={() => setShowSuspend(false)}>
-                          {t("common.cancel")}
-                        </Button>
-                      </Flex>
-                    </Flex>
-                  </form>
-                )}
-              </Flex>
-            )}
-          </Box>
-        )}
+        {canTransmit &&
+          activeSteps.length > 0 &&
+          !canActAnywhere &&
+          (fileStatus === "IN_PROGRESS" || fileStatus === "ON_HOLD") && (
+            <Box
+              p="3"
+              style={{
+                borderRadius: "var(--radius-3)",
+                background: "var(--gray-a3)",
+                border: "1px solid var(--gray-a5)",
+              }}
+            >
+              <Text size="2" color="gray" as="p">
+                {t("files.circuit.notResponsible", {
+                  name:
+                    activeSteps
+                      .map((s) => s.responsibleName)
+                      .filter(Boolean)
+                      .join(", ") || t("files.circuit.unassigned"),
+                })}
+              </Text>
+            </Box>
+          )}
       </Flex>
     </Card>
   );

@@ -125,7 +125,7 @@ export default function ChainTemplateDetailPage() {
                         : t("admin.chainTemplates.activate")}
                     </Button>
                   )}
-                  {canDelete && !template.systemTemplate && (
+                  {canDelete && !template.systemTemplate && !template.linkedToFiles && (
                     <Button variant="soft" color="red" onClick={handleDelete}>
                       {t("admin.chainTemplates.delete")}
                     </Button>

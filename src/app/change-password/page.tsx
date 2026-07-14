@@ -8,7 +8,6 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/components/AuthProvider";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ApiError, changePassword } from "@/lib/api";
-import { saveAuth, getRefreshToken, getAccessToken } from "@/lib/auth-storage";
 
 const fieldClass =
   "w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 pr-16 text-sm text-gray-800 transition placeholder:text-gray-400 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/15";
@@ -71,7 +70,7 @@ function RequirementRow({ met, label }: { met: boolean; label: string }) {
 
 export default function ChangePasswordPage() {
   const { t } = useTranslation();
-  const { user, logout, refreshUser } = useAuth();
+  const { user, logout, applySession } = useAuth();
   const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -121,13 +120,8 @@ export default function ChangePasswordPage() {
     }
     setSubmitting(true);
     try {
-      const profile = await changePassword(currentPassword, newPassword);
-      const accessToken = getAccessToken();
-      const refreshToken = getRefreshToken();
-      if (accessToken && refreshToken) {
-        saveAuth({ accessToken, refreshToken, user: profile });
-      }
-      await refreshUser();
+      const tokens = await changePassword(currentPassword, newPassword);
+      applySession(tokens.user);
       router.replace("/dashboard");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("common.connectionFailed"));

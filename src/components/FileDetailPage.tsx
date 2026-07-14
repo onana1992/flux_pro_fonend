@@ -280,19 +280,22 @@ export function FileDetailPage({ fileId }: { fileId: string }) {
 
   async function handleClose(e: FormEvent) {
     e.preventDefault();
-    if (!responseFile && !responseAttachmentId) {
+    if (closureReason.trim().length < 10) {
       setError(t("files.closureIncomplete"));
       return;
     }
     setBusy(true);
     setError(null);
     try {
-      let attachmentId = responseAttachmentId;
+      let attachmentId = responseAttachmentId || undefined;
       if (responseFile) {
         const uploaded = await uploadFileAttachment(fileId, responseFile, true);
         attachmentId = uploaded.id;
       }
-      await closeFile(fileId, { closureReason, responseAttachmentId: attachmentId });
+      await closeFile(fileId, {
+        closureReason: closureReason.trim(),
+        responseAttachmentId: attachmentId,
+      });
       setResponseFile(null);
       setSuccess(t("files.closeSuccess"));
       await load();
@@ -685,7 +688,7 @@ export function FileDetailPage({ fileId }: { fileId: string }) {
                           <Button
                             type="submit"
                             color="green"
-                            disabled={busy || (!responseFile && !responseAttachmentId)}
+                            disabled={busy || closureReason.trim().length < 10}
                             size="2"
                           >
                             <CheckCircledIcon />

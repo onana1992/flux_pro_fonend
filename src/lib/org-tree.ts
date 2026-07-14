@@ -12,6 +12,29 @@ export function flattenOrgTree(nodes: OrganisationTreeNode[]): OrganisationTreeN
   return result.sort((a, b) => a.code.localeCompare(b.code));
 }
 
+/** DFS order with depth — preserves hierarchy (no alphabetical re-sort). */
+export function flattenOrgTreeHierarchical(
+  nodes: OrganisationTreeNode[],
+  options?: { activeOnly?: boolean },
+): { node: OrganisationTreeNode; depth: number }[] {
+  const result: { node: OrganisationTreeNode; depth: number }[] = [];
+  const activeOnly = options?.activeOnly ?? false;
+
+  function walk(list: OrganisationTreeNode[], depth: number) {
+    for (const node of list) {
+      if (!activeOnly || node.active) {
+        result.push({ node, depth });
+      }
+      if (node.children?.length) {
+        walk(node.children, depth + 1);
+      }
+    }
+  }
+
+  walk(nodes, 0);
+  return result;
+}
+
 export function findOrgNode(nodes: OrganisationTreeNode[], id: string): OrganisationTreeNode | null {
   for (const node of nodes) {
     if (node.id === id) return node;

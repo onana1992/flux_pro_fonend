@@ -31,8 +31,11 @@ import { useAuth } from "@/components/AuthProvider";
 import {
   ApiError,
   getChainCandidates,
+  getChainOrganizations,
   getChainTemplate,
+  getChainUsersInOrganization,
   getFilePassages,
+  getOrganizationTree,
   getUser,
   initializeFileChain,
   resumeFilePassage,
@@ -41,7 +44,8 @@ import {
   suspendFilePassage,
   transmitFilePassage,
 } from "@/lib/api";
-import { canSeePermission, hasPermission } from "@/lib/auth-storage";
+import { canSeePermission } from "@/lib/auth-storage";
+import { flattenOrgTreeHierarchical } from "@/lib/org-tree";
 import type {
   ChainStepTemplate,
   ChainTemplateDetail,
@@ -49,6 +53,7 @@ import type {
   DelayUnit,
   FilePassageCircuit,
   FileStatus,
+  OrganizationTreeNode,
   PassageCandidate,
   PassageStatus,
   PassageStep,
@@ -263,16 +268,53 @@ function groupTemplateStepsByStage(
   return stages;
 }
 
-function isManagerRole(role?: UserRole | null): boolean {
-  return (
-    role === "DIRECTOR" ||
-    role === "SERVICE_HEAD" ||
-    role === "REGIONAL_DIRECTOR" ||
-    role === "SUPER_ADMIN" ||
-    role === "BUSINESS_ADMIN" ||
-    role === "SECRETARY_GENERAL" ||
-    role === "EXECUTIVE_OFFICE"
-  );
+/** Orgs that have at least one candidate; keep tree order, append any missing candidate orgs. */
+function orgsWithCandidates(
+  organizations: { code: string; name: string; depth: number }[],
+  candidates: PassageCandidate[],
+): { code: string; name: string; depth: number }[] {
+  const codes = new Set(candidates.map((c) => c.organizationCode).filter(Boolean));
+  if (codes.size === 0) return [];
+  const fromTree = organizations.filter((o) => codes.has(o.code));
+  const seen = new Set(fromTree.map((o) => o.code));
+  const extras = [...codes]
+    .filter((code) => !seen.has(code))
+    .map((code) => {
+      const sample = candidates.find((c) => c.organizationCode === code);
+      return { code, name: sample?.organizationName ?? code, depth: 0 };
+    })
+    .sort((a, b) => a.code.localeCompare(b.code));
+  return [...fromTree, ...extras];
+}
+
+/** Keep orgs that have at least one candidate for the expected role (preserve hierarchy order). */
+function orgsMatchingRole(
+  organizations: { id: string; code: string; name: string; depth: number }[],
+  candidates: PassageCandidate[],
+): { id: string; code: string; name: string; depth: number }[] {
+  const codes = new Set(candidates.map((c) => c.organizationCode).filter(Boolean));
+  if (codes.size === 0) return [];
+  return organizations.filter((o) => codes.has(o.code));
+}
+
+
+/** Passages of the next stage that still need a responsible, if transmitting `current` would complete its stage. */
+function getNextUnassignedPassages(passages: PassageStep[], current: PassageStep): PassageStep[] {
+  if (current.closureStep) return [];
+  const stages = groupPassagesByStage(passages);
+  const currentStage = stages.find((s) => s.stageOrder === current.stepOrder);
+  if (!currentStage) return [];
+  const othersDone = currentStage.steps
+    .filter((p) => p.id !== current.id)
+    .every((p) => p.status === "COMPLETED");
+  if (!othersDone) return [];
+  const nextStageOrder = stages
+    .map((s) => s.stageOrder)
+    .filter((order) => order > current.stepOrder)
+    .sort((a, b) => a - b)[0];
+  if (nextStageOrder == null) return [];
+  const nextStage = stages.find((s) => s.stageOrder === nextStageOrder);
+  return (nextStage?.steps ?? []).filter((p) => !p.responsibleUserId);
 }
 
 function canActOnPassageStep(
@@ -283,8 +325,8 @@ function canActOnPassageStep(
 ): boolean {
   if (!canTransmit || (fileStatus !== "IN_PROGRESS" && fileStatus !== "ON_HOLD")) return false;
   if (step.status !== "IN_PROGRESS" && step.status !== "SUSPENDED") return false;
-  if (step.responsibleUserId && step.responsibleUserId === user?.id) return true;
-  return isManagerRole(user?.role) || hasPermission(user, "FILES:UPDATE");
+  if (user?.role === "SUPER_ADMIN" || user?.role === "BUSINESS_ADMIN") return true;
+  return Boolean(step.responsibleUserId && step.responsibleUserId === user?.id);
 }
 
 function PassageStepRow({
@@ -1109,21 +1151,46 @@ function ResponsibleUserDialog({
 function AssignmentStepCard({
   step,
   candidates,
+  organizations,
+  organizationCode,
+  onOrganizationChange,
   value,
   onChange,
   disabled,
+  required,
+  selectOrganizationLabel,
   selectUserLabel,
+  selectOrgFirstLabel,
   noCandidatesLabel,
+  noCandidatesInOrgLabel,
+  noOrgsLabel,
+  requiredLabel,
+  optionalLabel,
 }: {
   step: ChainStepTemplate;
   candidates: PassageCandidate[];
+  organizations: { code: string; name: string; depth: number }[];
+  organizationCode: string;
+  onOrganizationChange: (orgCode: string) => void;
   value: string;
   onChange: (userId: string) => void;
   disabled?: boolean;
+  required?: boolean;
+  selectOrganizationLabel: string;
   selectUserLabel: string;
+  selectOrgFirstLabel: string;
   noCandidatesLabel: string;
+  noCandidatesInOrgLabel: string;
+  noOrgsLabel: string;
+  requiredLabel?: string;
+  optionalLabel?: string;
 }) {
   const stepId = step.id ?? "";
+  const orgsForRole = orgsWithCandidates(organizations, candidates);
+  const filteredCandidates = organizationCode
+    ? candidates.filter((c) => c.organizationCode === organizationCode)
+    : [];
+
   return (
     <Box
       p="3"
@@ -1144,26 +1211,163 @@ function AssignmentStepCard({
           <Badge size="1" variant="outline" color="gray">
             {step.responsibleRole}
           </Badge>
+          {required ? (
+            <Badge size="1" variant="soft" color="orange">
+              {requiredLabel}
+            </Badge>
+          ) : (
+            <Badge size="1" variant="soft" color="gray">
+              {optionalLabel}
+            </Badge>
+          )}
         </Flex>
+
+        <Select.Root
+          value={organizationCode || "none"}
+          onValueChange={(v) => onOrganizationChange(v === "none" ? "" : v)}
+          disabled={disabled || !stepId || orgsForRole.length === 0}
+          required={required}
+        >
+          <Select.Trigger placeholder={selectOrganizationLabel} style={{ width: "100%" }}>
+            {organizationCode
+              ? (() => {
+                  const selected = orgsForRole.find((o) => o.code === organizationCode)
+                    ?? organizations.find((o) => o.code === organizationCode);
+                  if (!selected) return null;
+                  return (
+                    <Flex align="center" gap="2" style={{ minWidth: 0, overflow: "hidden" }}>
+                      <Badge size="1" variant="soft" color="indigo" style={{ flexShrink: 0 }}>
+                        {selected.code}
+                      </Badge>
+                      <Text
+                        size="2"
+                        style={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {selected.name}
+                      </Text>
+                    </Flex>
+                  );
+                })()
+              : null}
+          </Select.Trigger>
+          <Select.Content
+            position="popper"
+            style={{ maxHeight: 360, minWidth: "var(--radix-select-trigger-width)" }}
+          >
+            <Select.Item value="none" textValue="—">
+              <Text size="2" color="gray">
+                —
+              </Text>
+            </Select.Item>
+            {orgsForRole.map((org, index) => {
+              const prevDepth = index > 0 ? orgsForRole[index - 1].depth : 0;
+              const showBranch = org.depth > 0;
+              const isRoot = org.depth === 0;
+              return (
+                <Select.Item
+                  key={org.code}
+                  value={org.code}
+                  textValue={`${org.code} ${org.name}`}
+                  style={{
+                    paddingTop: isRoot && index > 0 ? 10 : undefined,
+                    paddingBottom: 6,
+                    borderTop:
+                      isRoot && index > 0 ? "1px solid var(--gray-a4)" : undefined,
+                  }}
+                >
+                  <Flex
+                    align="center"
+                    gap="2"
+                    style={{
+                      paddingLeft: org.depth * 18,
+                      minWidth: 0,
+                      maxWidth: "100%",
+                    }}
+                  >
+                    {showBranch ? (
+                      <Text
+                        size="1"
+                        color="gray"
+                        style={{
+                          flexShrink: 0,
+                          width: 14,
+                          textAlign: "center",
+                          opacity: 0.55,
+                          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                        }}
+                      >
+                        {org.depth > prevDepth ? "↳" : "•"}
+                      </Text>
+                    ) : (
+                      <Box
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          background: "var(--accent-9)",
+                          flexShrink: 0,
+                        }}
+                      />
+                    )}
+                    <Badge
+                      size="1"
+                      variant={isRoot ? "solid" : "soft"}
+                      color={isRoot ? "indigo" : "gray"}
+                      style={{ flexShrink: 0 }}
+                    >
+                      {org.code}
+                    </Badge>
+                    <Text
+                      size="2"
+                      weight={isRoot ? "bold" : "medium"}
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        color: isRoot ? "var(--gray-12)" : "var(--gray-11)",
+                      }}
+                    >
+                      {org.name}
+                    </Text>
+                  </Flex>
+                </Select.Item>
+              );
+            })}
+          </Select.Content>
+        </Select.Root>
+
         <Select.Root
           value={value || "none"}
           onValueChange={(v) => onChange(v === "none" ? "" : v)}
-          disabled={disabled || !stepId}
-          required
+          disabled={disabled || !stepId || !organizationCode}
+          required={required}
         >
-          <Select.Trigger placeholder={selectUserLabel} style={{ width: "100%" }} />
+          <Select.Trigger
+            placeholder={organizationCode ? selectUserLabel : selectOrgFirstLabel}
+            style={{ width: "100%" }}
+          />
           <Select.Content>
             <Select.Item value="none">—</Select.Item>
-            {candidates.map((c) => (
+            {filteredCandidates.map((c) => (
               <Select.Item key={c.id} value={c.id}>
-                {c.firstName} {c.lastName} ({c.organizationCode})
+                {c.firstName} {c.lastName}
               </Select.Item>
             ))}
           </Select.Content>
         </Select.Root>
-        {candidates.length === 0 && (
+
+        {orgsForRole.length === 0 && (
           <Text size="1" color="orange">
-            {noCandidatesLabel}
+            {candidates.length === 0 ? noCandidatesLabel : noOrgsLabel}
+          </Text>
+        )}
+        {organizationCode && filteredCandidates.length === 0 && orgsForRole.length > 0 && (
+          <Text size="1" color="orange">
+            {noCandidatesInOrgLabel}
           </Text>
         )}
       </Flex>
@@ -1180,11 +1384,21 @@ function PassageActionPanel({
   suspendReason,
   showReturn,
   showSuspend,
+  nextUnassigned,
+  nextAssignments,
+  nextOrgByStep,
+  orgOptions,
+  usersByOrgId,
+  candidatesByRole,
+  loadingNextResponsible,
+  loadingUsersOrgId,
   onCommentChange,
   onReturnReasonChange,
   onSuspendReasonChange,
   onShowReturn,
   onShowSuspend,
+  onNextOrgChange,
+  onNextAssignmentChange,
   onTransmit,
   onReturn,
   onSuspend,
@@ -1198,18 +1412,37 @@ function PassageActionPanel({
   suspendReason: string;
   showReturn: boolean;
   showSuspend: boolean;
+  nextUnassigned: PassageStep[];
+  nextAssignments: Record<string, string>;
+  nextOrgByStep: Record<string, string>;
+  orgOptions: { id: string; code: string; name: string; depth: number }[];
+  usersByOrgId: Record<string, PassageCandidate[]>;
+  candidatesByRole: Partial<Record<UserRole, PassageCandidate[]>>;
+  loadingNextResponsible?: boolean;
+  loadingUsersOrgId?: string | null;
   onCommentChange: (value: string) => void;
   onReturnReasonChange: (value: string) => void;
   onSuspendReasonChange: (value: string) => void;
   onShowReturn: (show: boolean) => void;
   onShowSuspend: (show: boolean) => void;
+  onNextOrgChange: (passageId: string, orgId: string) => void;
+  onNextAssignmentChange: (passageId: string, userId: string) => void;
   onTransmit: (e: FormEvent) => void;
   onReturn: (e: FormEvent) => void;
   onSuspend: (e: FormEvent) => void;
   onResume: () => void;
 }) {
   const { t } = useTranslation();
-  const markDoneLabel = isParallel ? t("files.circuit.markDone") : t("files.circuit.transmit");
+  const isClosure = Boolean(step.closureStep);
+  const markDoneLabel = isClosure
+    ? t("files.circuit.closeFile")
+    : isParallel
+      ? t("files.circuit.markDone")
+      : t("files.circuit.transmit");
+  const nextReady =
+    nextUnassigned.length === 0 || nextUnassigned.every((p) => Boolean(nextAssignments[p.id]));
+  // Never lock the org/user selects on "loading orgs" — that state can stick after Strict Mode remounts.
+  const nextInputsDisabled = busy;
 
   return (
     <Box
@@ -1231,20 +1464,220 @@ function PassageActionPanel({
           <Text size="2" weight="medium">
             {markDoneLabel}
           </Text>
-          {isParallel && (
+          {isClosure && (
+            <Text size="1" color="gray">
+              {t("files.circuit.closeFileHint")}
+            </Text>
+          )}
+          {isParallel && !isClosure && (
             <Text size="1" color="gray">
               {t("files.circuit.markDoneHint")}
             </Text>
           )}
           <form onSubmit={onTransmit}>
             <Flex direction="column" gap="2">
+              {nextUnassigned.length > 0 && (
+                <Box
+                  p="3"
+                  style={{
+                    borderRadius: "var(--radius-2)",
+                    background: "var(--orange-a2)",
+                    border: "1px solid var(--orange-a5)",
+                  }}
+                >
+                  <Flex direction="column" gap="2">
+                    <Text size="2" weight="medium">
+                      {t("files.circuit.nextResponsibleTitle")}
+                    </Text>
+                    <Text size="1" color="gray">
+                      {t("files.circuit.nextResponsibleHint")}
+                    </Text>
+                    {loadingNextResponsible && (
+                      <Text size="1" color="gray">
+                        {t("common.loading")}
+                      </Text>
+                    )}
+                    {nextUnassigned.map((nextStep) => {
+                      const role = nextStep.responsibleRole;
+                      const roleCandidates = role ? (candidatesByRole[role] ?? []) : [];
+                      const orgsForRole = orgsMatchingRole(orgOptions, roleCandidates);
+                      const orgId = nextOrgByStep[nextStep.id] ?? "";
+                      const selectedOrg = orgsForRole.find((o) => o.id === orgId);
+                      const usersFromOrgApi = orgId ? (usersByOrgId[orgId] ?? []) : [];
+                      const usersFromCandidates = selectedOrg
+                        ? roleCandidates.filter((c) => c.organizationCode === selectedOrg.code)
+                        : [];
+                      // Prefer role candidates; fall back to org users filtered by role.
+                      const users =
+                        usersFromCandidates.length > 0
+                          ? usersFromCandidates
+                          : usersFromOrgApi.filter((u) => !role || u.role === role);
+                      const loadingUsers = Boolean(orgId && loadingUsersOrgId === orgId);
+                      return (
+                        <Box key={nextStep.id}>
+                          <Flex direction="column" gap="2">
+                            <Flex align="center" gap="2" wrap="wrap">
+                              <Badge size="1" variant="soft" color="gray">
+                                {nextStep.stepOrder}
+                              </Badge>
+                              <Text size="2" weight="medium">
+                                {nextStep.label}
+                              </Text>
+                              {role && (
+                                <Badge size="1" variant="outline" color="gray">
+                                  {role}
+                                </Badge>
+                              )}
+                            </Flex>
+
+                            <Select.Root
+                              value={orgId || "none"}
+                              onValueChange={(v) =>
+                                onNextOrgChange(nextStep.id, v === "none" ? "" : v)
+                              }
+                              disabled={nextInputsDisabled}
+                              required
+                            >
+                              <Select.Trigger
+                                placeholder={t("files.circuit.selectOrganization")}
+                                style={{ width: "100%" }}
+                              >
+                                {selectedOrg ? (
+                                  <Flex align="center" gap="2" style={{ minWidth: 0 }}>
+                                    <Badge size="1" variant="soft" color="indigo" style={{ flexShrink: 0 }}>
+                                      {selectedOrg.code}
+                                    </Badge>
+                                    <Text size="2" truncate>
+                                      {selectedOrg.name}
+                                    </Text>
+                                  </Flex>
+                                ) : null}
+                              </Select.Trigger>
+                              <Select.Content
+                                position="popper"
+                                style={{ maxHeight: 360, minWidth: "var(--radix-select-trigger-width)" }}
+                              >
+                                <Select.Item value="none">—</Select.Item>
+                                {orgsForRole.map((org, index) => {
+                                  const prevDepth = index > 0 ? orgsForRole[index - 1].depth : 0;
+                                  const isRoot = org.depth === 0;
+                                  return (
+                                    <Select.Item
+                                      key={org.id}
+                                      value={org.id}
+                                      textValue={`${org.code} ${org.name}`}
+                                      style={{
+                                        paddingTop: isRoot && index > 0 ? 10 : undefined,
+                                        borderTop:
+                                          isRoot && index > 0 ? "1px solid var(--gray-a4)" : undefined,
+                                      }}
+                                    >
+                                      <Flex
+                                        align="center"
+                                        gap="2"
+                                        style={{ paddingLeft: org.depth * 16, minWidth: 0 }}
+                                      >
+                                        {org.depth > 0 ? (
+                                          <Text size="1" color="gray" style={{ width: 14, flexShrink: 0 }}>
+                                            {org.depth > prevDepth ? "↳" : "•"}
+                                          </Text>
+                                        ) : null}
+                                        <Badge
+                                          size="1"
+                                          variant={isRoot ? "solid" : "soft"}
+                                          color={isRoot ? "indigo" : "gray"}
+                                          style={{ flexShrink: 0 }}
+                                        >
+                                          {org.code}
+                                        </Badge>
+                                        <Text size="2" weight={isRoot ? "bold" : "medium"}>
+                                          {org.name}
+                                        </Text>
+                                      </Flex>
+                                    </Select.Item>
+                                  );
+                                })}
+                              </Select.Content>
+                            </Select.Root>
+
+                            <Select.Root
+                              value={nextAssignments[nextStep.id] || "none"}
+                              onValueChange={(v) =>
+                                onNextAssignmentChange(nextStep.id, v === "none" ? "" : v)
+                              }
+                              disabled={nextInputsDisabled || !orgId || loadingUsers}
+                              required
+                            >
+                              <Select.Trigger
+                                placeholder={
+                                  !orgId
+                                    ? t("files.circuit.selectOrgFirst")
+                                    : loadingUsers
+                                      ? t("common.loading")
+                                      : t("files.circuit.selectUser")
+                                }
+                                style={{ width: "100%" }}
+                              />
+                              <Select.Content position="popper" style={{ maxHeight: 360 }}>
+                                <Select.Item value="none">—</Select.Item>
+                                {users.map((u) => (
+                                  <Select.Item
+                                    key={u.id}
+                                    value={u.id}
+                                    textValue={`${u.firstName} ${u.lastName} ${u.role}`}
+                                  >
+                                    {u.firstName} {u.lastName}
+                                    <Text size="1" color="gray">
+                                      {" "}
+                                      — {u.role}
+                                    </Text>
+                                  </Select.Item>
+                                ))}
+                              </Select.Content>
+                            </Select.Root>
+
+                            {!loadingNextResponsible && orgsForRole.length === 0 && (
+                              <Text size="1" color="orange">
+                                {role
+                                  ? t("files.circuit.noCandidatesForRole", { role })
+                                  : t("files.circuit.noOrganizations")}
+                              </Text>
+                            )}
+                            {!loadingUsers && orgId && users.length === 0 && orgsForRole.length > 0 && (
+                              <Text size="1" color="orange">
+                                {role
+                                  ? t("files.circuit.noCandidatesInOrg", { role })
+                                  : t("files.circuit.noUsersInOrg")}
+                              </Text>
+                            )}
+                          </Flex>
+                        </Box>
+                      );
+                    })}
+                  </Flex>
+                </Box>
+              )}
               <TextArea
                 value={comment}
                 onChange={(e) => onCommentChange(e.target.value)}
-                placeholder={t("files.circuit.transmitComment")}
+                placeholder={
+                  isClosure
+                    ? t("files.circuit.closeFileComment")
+                    : t("files.circuit.transmitComment")
+                }
                 rows={2}
+                required={isClosure}
               />
-              <Button type="submit" disabled={busy} size="2">
+              <Button
+                type="submit"
+                disabled={
+                  busy ||
+                  loadingNextResponsible ||
+                  !nextReady ||
+                  (isClosure && comment.trim().length < 10)
+                }
+                size="2"
+              >
                 <CheckCircledIcon />
                 {markDoneLabel}
               </Button>
@@ -1374,11 +1807,24 @@ export function PassageCircuit({
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<ChainTemplateDetail | null>(null);
   const [assignments, setAssignments] = useState<Record<string, string>>({});
+  const [orgByStep, setOrgByStep] = useState<Record<string, string>>({});
+  const [orgOptions, setOrgOptions] = useState<{ code: string; name: string; depth: number }[]>([]);
   const [candidatesByRole, setCandidatesByRole] = useState<Partial<Record<UserRole, PassageCandidate[]>>>({});
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [detailStep, setDetailStep] = useState<PassageStep | null>(null);
   const [userStep, setUserStep] = useState<PassageStep | null>(null);
   const [actionStepId, setActionStepId] = useState<string | null>(null);
+  const [nextAssignments, setNextAssignments] = useState<Record<string, string>>({});
+  const [nextOrgByStep, setNextOrgByStep] = useState<Record<string, string>>({});
+  const [actionOrgOptions, setActionOrgOptions] = useState<
+    { id: string; code: string; name: string; depth: number }[]
+  >([]);
+  const [actionCandidatesByRole, setActionCandidatesByRole] = useState<
+    Partial<Record<UserRole, PassageCandidate[]>>
+  >({});
+  const [usersByOrgId, setUsersByOrgId] = useState<Record<string, PassageCandidate[]>>({});
+  const [loadingNextResponsible, setLoadingNextResponsible] = useState(false);
+  const [loadingUsersOrgId, setLoadingUsersOrgId] = useState<string | null>(null);
 
   const canTransmit = canSeePermission(user, "FILES:TRANSMIT");
   const canInitialize = canSeePermission(user, "FILES:UPDATE");
@@ -1391,6 +1837,12 @@ export function PassageCircuit({
   const actionStep =
     (actionStepId ? activeSteps.find((p) => p.id === actionStepId) : null) ?? preferredActionStep;
 
+  const actionNeedsNextResponsible =
+    Boolean(actionStep) &&
+    actionStep?.status === "IN_PROGRESS" &&
+    Boolean(circuit) &&
+    getNextUnassignedPassages(circuit!.passages, actionStep!).length > 0;
+
   useEffect(() => {
     if (!actionStepId) return;
     const stillActive = circuit?.passages.some(
@@ -1399,6 +1851,91 @@ export function PassageCircuit({
     );
     if (!stillActive) setActionStepId(null);
   }, [actionStepId, circuit?.passages]);
+
+  useEffect(() => {
+    if (!actionNeedsNextResponsible || !fileId || !actionStep || !circuit) return;
+
+    const rolesNeeded = [
+      ...new Set(
+        getNextUnassignedPassages(circuit.passages, actionStep)
+          .map((p) => p.responsibleRole)
+          .filter((r): r is UserRole => Boolean(r)),
+      ),
+    ];
+    const needsOrgs = actionOrgOptions.length === 0;
+    const needsCandidates = rolesNeeded.some((role) => actionCandidatesByRole[role] == null);
+    if (!needsOrgs && !needsCandidates) return;
+
+    let alive = true;
+    setLoadingNextResponsible(true);
+
+    (async () => {
+      try {
+        if (needsOrgs) {
+          let mapped: { id: string; code: string; name: string; depth: number }[] = [];
+          try {
+            const orgs = await getChainOrganizations(fileId);
+            mapped = (orgs ?? []).map((o) => ({
+              id: String(o.id),
+              code: o.code,
+              name: o.name,
+              depth: o.depth ?? 0,
+            }));
+          } catch {
+            // fall through
+          }
+          if (mapped.length === 0) {
+            const tree = await getOrganizationTree();
+            mapped = flattenOrgTreeHierarchical(tree as OrganizationTreeNode[], {
+              activeOnly: false,
+            }).map(({ node, depth }) => ({
+              id: String(node.id),
+              code: node.code,
+              name: node.name,
+              depth,
+            }));
+          }
+          if (alive) setActionOrgOptions(mapped);
+        }
+
+        if (needsCandidates && rolesNeeded.length > 0) {
+          const byRole: Partial<Record<UserRole, PassageCandidate[]>> = {
+            ...actionCandidatesByRole,
+          };
+          await Promise.all(
+            rolesNeeded.map(async (role) => {
+              if (byRole[role] != null) return;
+              try {
+                byRole[role] = await getChainCandidates(fileId, role);
+              } catch {
+                byRole[role] = [];
+              }
+            }),
+          );
+          if (alive) setActionCandidatesByRole(byRole);
+        }
+      } catch (err) {
+        if (alive) {
+          setError(err instanceof ApiError ? err.message : t("common.errorLoad"));
+        }
+      } finally {
+        setLoadingNextResponsible(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [
+    actionNeedsNextResponsible,
+    fileId,
+    actionStep?.id,
+    circuit?.passages,
+    actionOrgOptions.length,
+    // Re-run only while some expected roles are still missing from cache
+    Object.keys(actionCandidatesByRole).sort().join(","),
+    t,
+  ]);
 
   const actionableSteps = activeSteps.filter((p) =>
     canActOnPassageStep(p, user, canTransmit, fileStatus),
@@ -1436,10 +1973,23 @@ export function PassageCircuit({
     let cancelled = false;
     (async () => {
       try {
-        const page = await searchChainTemplates({ active: true, size: 100 });
-        if (!cancelled) setTemplates(page.content);
+        const [page, tree] = await Promise.all([
+          searchChainTemplates({ active: true, size: 100 }),
+          getOrganizationTree(),
+        ]);
+        if (cancelled) return;
+        setTemplates(page.content);
+        setOrgOptions(
+          flattenOrgTreeHierarchical(tree as OrganizationTreeNode[], { activeOnly: true }).map(
+            ({ node, depth }) => ({
+              code: node.code,
+              name: node.name,
+              depth,
+            }),
+          ),
+        );
       } catch {
-        // listing templates is optional until user opens the form
+        // listing templates / orgs is optional until user opens the form
       }
     })();
     return () => {
@@ -1451,6 +2001,7 @@ export function PassageCircuit({
     setSelectedTemplateId(templateId);
     setSelectedTemplate(null);
     setAssignments({});
+    setOrgByStep({});
     setCandidatesByRole({});
     if (!templateId) return;
 
@@ -1491,8 +2042,30 @@ export function PassageCircuit({
 
   async function handleTransmit(e: FormEvent, step: PassageStep) {
     e.preventDefault();
-    await runAction(() => transmitFilePassage(fileId, step.id, { comment: comment || undefined }));
+    if (step.closureStep && comment.trim().length < 10) {
+      setError(t("files.circuit.closeFileReasonRequired"));
+      return;
+    }
+    const unassignedNext = circuit ? getNextUnassignedPassages(circuit.passages, step) : [];
+    if (unassignedNext.some((p) => !nextAssignments[p.id])) {
+      setError(t("files.circuit.nextResponsibleRequired"));
+      return;
+    }
+    const nextAssignmentList = unassignedNext.map((p) => ({
+      passageId: p.id,
+      responsibleUserId: nextAssignments[p.id],
+    }));
+    await runAction(() =>
+      transmitFilePassage(fileId, step.id, {
+        comment: comment || undefined,
+        nextResponsibleUserId:
+          nextAssignmentList.length === 1 ? nextAssignmentList[0].responsibleUserId : undefined,
+        nextAssignments: nextAssignmentList.length > 0 ? nextAssignmentList : undefined,
+      }),
+    );
     setComment("");
+    setNextAssignments({});
+    setNextOrgByStep({});
     setActionStepId(null);
   }
 
@@ -1517,21 +2090,61 @@ export function PassageCircuit({
     if (!selectedTemplate) return;
 
     const steps = selectedTemplate.steps;
-    const missing = steps.find((s) => !s.id || !assignments[s.id]);
-    if (missing) {
-      setError(t("files.circuit.assignmentRequired"));
+    const firstStageSteps = groupTemplateStepsByStage(steps)[0]?.steps ?? [];
+    const missingFirst = firstStageSteps.find((s) => !s.id || !assignments[s.id]);
+    if (missingFirst) {
+      setError(t("files.circuit.firstAssignmentRequired"));
       return;
     }
 
     await runAction(() =>
       initializeFileChain(fileId, {
         chainTemplateId: selectedTemplate.id,
-        assignments: steps.map((s) => ({
-          chainStepTemplateId: s.id!,
-          responsibleUserId: assignments[s.id!],
-        })),
+        assignments: steps
+          .filter((s) => s.id && assignments[s.id])
+          .map((s) => ({
+            chainStepTemplateId: s.id!,
+            responsibleUserId: assignments[s.id!],
+          })),
       }),
     );
+  }
+
+  async function openActionPanel(step: PassageStep) {
+    setActionStepId(step.id);
+    setShowReturn(false);
+    setShowSuspend(false);
+    setComment("");
+    setNextAssignments({});
+    setNextOrgByStep({});
+    setError(null);
+    if (actionOrgOptions.length === 0) {
+      // Allow the load effect to run again after a failed/cancelled attempt.
+      setLoadingNextResponsible(false);
+    }
+  }
+
+  async function handleNextOrgChange(passageId: string, orgId: string) {
+    setNextOrgByStep((prev) => ({ ...prev, [passageId]: orgId }));
+    setNextAssignments((prev) => {
+      const next = { ...prev };
+      delete next[passageId];
+      return next;
+    });
+    if (!orgId) return;
+    if (usersByOrgId[orgId]) return;
+
+    setLoadingUsersOrgId(orgId);
+    setError(null);
+    try {
+      const users = await getChainUsersInOrganization(fileId, orgId);
+      setUsersByOrgId((prev) => ({ ...prev, [orgId]: users }));
+    } catch (err) {
+      setUsersByOrgId((prev) => ({ ...prev, [orgId]: [] }));
+      setError(err instanceof ApiError ? err.message : t("common.errorLoad"));
+    } finally {
+      setLoadingUsersOrgId(null);
+    }
   }
 
   async function handleResume(step: PassageStep) {
@@ -1576,10 +2189,16 @@ export function PassageCircuit({
   }
 
   if (!circuit || circuit.passages.length === 0) {
+    const templateStages = selectedTemplate
+      ? groupTemplateStepsByStage(selectedTemplate.steps)
+      : [];
+    const firstStageSteps = templateStages[0]?.steps ?? [];
+    const firstStageAssigned = firstStageSteps.every((s) => s.id && assignments[s.id]);
     const assignedCount = selectedTemplate
       ? selectedTemplate.steps.filter((s) => s.id && assignments[s.id]).length
       : 0;
     const totalSteps = selectedTemplate?.steps.length ?? 0;
+    const firstStageOrder = templateStages[0]?.stageOrder;
 
     return (
       <Card size="3">
@@ -1635,14 +2254,23 @@ export function PassageCircuit({
                 {selectedTemplate && (
                   <Flex direction="column" gap="3">
                     <Flex justify="between" align="center" wrap="wrap" gap="2">
-                      <Text size="2" weight="medium">
-                        {t("files.circuit.assignUsers")}
-                      </Text>
-                      <Badge size="1" variant="soft" color={assignedCount === totalSteps ? "green" : "gray"}>
+                      <Flex direction="column" gap="1">
+                        <Text size="2" weight="medium">
+                          {t("files.circuit.assignUsers")}
+                        </Text>
+                        <Text size="1" color="gray">
+                          {t("files.circuit.assignUsersHint")}
+                        </Text>
+                      </Flex>
+                      <Badge
+                        size="1"
+                        variant="soft"
+                        color={firstStageAssigned ? "green" : "gray"}
+                      >
                         {assignedCount}/{totalSteps}
                       </Badge>
                     </Flex>
-                    {groupTemplateStepsByStage(selectedTemplate.steps).map((stage) => (
+                    {templateStages.map((stage) => (
                       <Flex key={stage.stageOrder} direction="column" gap="2">
                         {stage.steps.length > 1 && (
                           <Text size="1" color="gray">
@@ -1654,6 +2282,17 @@ export function PassageCircuit({
                             key={step.id || `${step.stepOrder}-${step.label}`}
                             step={step}
                             candidates={candidatesByRole[step.responsibleRole] ?? []}
+                            organizations={orgOptions}
+                            organizationCode={step.id ? orgByStep[step.id] ?? "" : ""}
+                            onOrganizationChange={(orgCode) => {
+                              if (!step.id) return;
+                              setOrgByStep((prev) => ({ ...prev, [step.id!]: orgCode }));
+                              setAssignments((prev) => {
+                                const next = { ...prev };
+                                delete next[step.id!];
+                                return next;
+                              });
+                            }}
                             value={step.id ? assignments[step.id] ?? "" : ""}
                             onChange={(userId) =>
                               step.id &&
@@ -1663,8 +2302,19 @@ export function PassageCircuit({
                               }))
                             }
                             disabled={busy}
+                            required={stage.stageOrder === firstStageOrder}
+                            selectOrganizationLabel={t("files.circuit.selectOrganization")}
                             selectUserLabel={t("files.circuit.selectUser")}
-                            noCandidatesLabel={t("files.circuit.noCandidates")}
+                            selectOrgFirstLabel={t("files.circuit.selectOrgFirst")}
+                            noCandidatesLabel={t("files.circuit.noCandidatesForRole", {
+                              role: step.responsibleRole,
+                            })}
+                            noCandidatesInOrgLabel={t("files.circuit.noCandidatesInOrg", {
+                              role: step.responsibleRole,
+                            })}
+                            noOrgsLabel={t("files.circuit.noOrganizations")}
+                            requiredLabel={t("files.circuit.firstStageRequired")}
+                            optionalLabel={t("files.circuit.optionalLater")}
                           />
                         ))}
                       </Flex>
@@ -1675,7 +2325,7 @@ export function PassageCircuit({
                 <Button
                   type="submit"
                   size="3"
-                  disabled={busy || !selectedTemplate || loadingTemplate || assignedCount < totalSteps}
+                  disabled={busy || !selectedTemplate || loadingTemplate || !firstStageAssigned}
                 >
                   {t("files.circuit.linkCircuit")}
                 </Button>
@@ -1706,22 +2356,20 @@ export function PassageCircuit({
           size="2"
           variant="soft"
           disabled={busy}
-          onClick={() => {
-            setActionStepId(step.id);
-            setShowReturn(false);
-            setShowSuspend(false);
-            setComment("");
-          }}
+          onClick={() => openActionPanel(step)}
         >
           <CheckCircledIcon />
           {step.status === "SUSPENDED"
             ? t("files.circuit.resume")
-            : isParallel
-              ? t("files.circuit.markDone")
-              : t("files.circuit.transmit")}
+            : step.closureStep
+              ? t("files.circuit.closeFile")
+              : isParallel
+                ? t("files.circuit.markDone")
+                : t("files.circuit.transmit")}
         </Button>
       );
     }
+    const nextUnassigned = getNextUnassignedPassages(circuit.passages, step);
     return (
       <PassageActionPanel
         step={step}
@@ -1732,11 +2380,23 @@ export function PassageCircuit({
         suspendReason={suspendReason}
         showReturn={showReturn}
         showSuspend={showSuspend}
+        nextUnassigned={nextUnassigned}
+        nextAssignments={nextAssignments}
+        nextOrgByStep={nextOrgByStep}
+        orgOptions={actionOrgOptions}
+        usersByOrgId={usersByOrgId}
+        candidatesByRole={actionCandidatesByRole}
+        loadingNextResponsible={loadingNextResponsible}
+        loadingUsersOrgId={loadingUsersOrgId}
         onCommentChange={setComment}
         onReturnReasonChange={setReturnReason}
         onSuspendReasonChange={setSuspendReason}
         onShowReturn={setShowReturn}
         onShowSuspend={setShowSuspend}
+        onNextOrgChange={handleNextOrgChange}
+        onNextAssignmentChange={(passageId, userId) =>
+          setNextAssignments((prev) => ({ ...prev, [passageId]: userId }))
+        }
         onTransmit={(e) => handleTransmit(e, step)}
         onReturn={(e) => handleReturn(e, step)}
         onSuspend={(e) => handleSuspend(e, step)}

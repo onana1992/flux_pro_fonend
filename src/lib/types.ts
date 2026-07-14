@@ -202,6 +202,7 @@ export interface ChainTemplateSummary {
 
 export interface ChainTemplateDetail extends ChainTemplateSummary {
   description?: string | null;
+  linkedToFiles?: boolean;
   createdAt: string;
   updatedAt: string;
   steps: ChainStepTemplate[];
@@ -320,7 +321,7 @@ export interface FileUpdateRequest {
 
 export interface FileCloseRequest {
   closureReason: string;
-  responseAttachmentId: string;
+  responseAttachmentId?: string;
 }
 
 export interface FileCancelRequest {
@@ -399,7 +400,7 @@ export interface PassageCandidate {
 
 export interface ChainStepAssignmentRequest {
   chainStepTemplateId: string;
-  responsibleUserId: string;
+  responsibleUserId?: string | null;
 }
 
 export interface ChainInitializeRequest {
@@ -407,9 +408,15 @@ export interface ChainInitializeRequest {
   assignments: ChainStepAssignmentRequest[];
 }
 
+export interface PassageNextAssignmentRequest {
+  passageId: string;
+  responsibleUserId: string;
+}
+
 export interface PassageTransmitRequest {
   comment?: string;
   nextResponsibleUserId?: string;
+  nextAssignments?: PassageNextAssignmentRequest[];
 }
 
 export interface PassageReturnRequest {

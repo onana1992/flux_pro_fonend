@@ -29,6 +29,8 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<UserProfile>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  /** Met à jour le profil en mémoire après un changement de mot de passe (tokens déjà sauvegardés). */
+  applySession: (profile: UserProfile) => void;
   /** À appeler une fois la notification de session expirée affichée à l'utilisateur. */
   clearSessionExpired: () => void;
 }
@@ -87,6 +89,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return data.user;
   }, []);
 
+  const applySession = useCallback((profile: UserProfile) => {
+    setUser(profile);
+    setSessionExpired(false);
+  }, []);
+
   const logout = useCallback(async () => {
     await apiLogout();
     setUser(null);
@@ -105,9 +112,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login,
       logout,
       refreshUser,
+      applySession,
       clearSessionExpired,
     }),
-    [user, loading, sessionExpired, login, logout, refreshUser, clearSessionExpired],
+    [user, loading, sessionExpired, login, logout, refreshUser, applySession, clearSessionExpired],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

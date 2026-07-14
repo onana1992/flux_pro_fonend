@@ -405,11 +405,13 @@ export async function resetUserPassword(id: string): Promise<{ temporaryPassword
 export async function changePassword(
   currentPassword: string,
   newPassword: string,
-): Promise<UserProfile> {
-  return apiFetch<UserProfile>("/api/auth/change-password", {
+): Promise<TokenResponse> {
+  const data = await apiFetch<TokenResponse>("/api/auth/change-password", {
     method: "POST",
     body: JSON.stringify({ currentPassword, newPassword }),
   });
+  saveAuth(data);
+  return data;
 }
 
 export async function getLoginAudit(params: {
@@ -800,6 +802,20 @@ export async function getChainCandidates(
 ): Promise<PassageCandidate[]> {
   const q = new URLSearchParams({ role });
   return apiFetch<PassageCandidate[]>(`/api/files/${fileId}/chain/candidates?${q}`);
+}
+
+export async function getChainUsersInOrganization(
+  fileId: string,
+  organizationId: string,
+): Promise<PassageCandidate[]> {
+  const q = new URLSearchParams({ organizationId });
+  return apiFetch<PassageCandidate[]>(`/api/files/${fileId}/chain/users?${q}`);
+}
+
+export async function getChainOrganizations(
+  fileId: string,
+): Promise<{ id: string; code: string; name: string; depth: number }[]> {
+  return apiFetch(`/api/files/${fileId}/chain/organizations`);
 }
 
 export async function transmitFilePassage(

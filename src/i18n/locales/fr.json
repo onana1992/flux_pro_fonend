@@ -163,9 +163,12 @@
       "onTime": "Dans les délais",
       "dueOn": "échéance {{date}}"
     },
+    "seeMore": "Voir plus",
+    "backToDashboard": "Retour au tableau de bord",
     "workload": {
       "title": "Charge par agent",
       "sub": "Dossiers actifs par agent dans votre périmètre",
+      "pageDescription": "Liste complète de la charge par agent dans votre périmètre",
       "agent": "Agent",
       "organization": "Organisation",
       "active": "Actifs",
@@ -175,6 +178,7 @@
     "overdueFiles": {
       "title": "Top retards",
       "sub": "Dossiers les plus en retard dans votre périmètre",
+      "pageDescription": "Liste complète des dossiers en retard dans votre périmètre",
       "reference": "Dossier",
       "step": "Maillon",
       "responsible": "Responsable",

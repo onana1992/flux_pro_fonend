@@ -163,9 +163,12 @@
       "onTime": "On time",
       "dueOn": "due {{date}}"
     },
+    "seeMore": "See more",
+    "backToDashboard": "Back to dashboard",
     "workload": {
       "title": "Workload by agent",
       "sub": "Active files per agent within your scope",
+      "pageDescription": "Full workload list by agent within your scope",
       "agent": "Agent",
       "organization": "Organisation",
       "active": "Active",
@@ -175,6 +178,7 @@
     "overdueFiles": {
       "title": "Top overdue files",
       "sub": "Most overdue files within your scope",
+      "pageDescription": "Full list of overdue files within your scope",
       "reference": "File",
       "step": "Step",
       "responsible": "Responsible",

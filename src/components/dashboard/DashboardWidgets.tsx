@@ -26,32 +26,41 @@ function formatDate(locale: string, value?: string | null): string {
 export function MyActivityWidget({ data }: { data: DashboardMyActivity | null }) {
   const { t } = useTranslation();
   const locale = useLocale();
+  const overdue = data?.overdueCount ?? 0;
 
   return (
     <div className="dash-card">
       <h2 className="dash-card__title">{t("dashboard.myActivity.title")}</h2>
       <p className="dash-card__sub">{t("dashboard.myActivity.sub")}</p>
 
-      <Grid columns="3" gap="3" pb="4" mb="4" className="dash-chart-summary">
-        <Box className="dash-chart-summary__item">
-          <Text as="p" size="1" color="gray" mb="1">{t("dashboard.myActivity.active")}</Text>
-          <Text as="p" size="5" weight="bold" className="dash-chart-summary__value">{data?.activeCount ?? "—"}</Text>
+      <Grid columns="3" gap="3" className="dash-my-summary">
+        <Box className="dash-my-summary__item">
+          <Text as="p" size="1" color="gray" mb="1">
+            {t("dashboard.myActivity.active")}
+          </Text>
+          <Text as="p" size="5" weight="bold" className="dash-my-summary__value">
+            {data?.activeCount ?? "—"}
+          </Text>
         </Box>
-        <Box className="dash-chart-summary__item">
-          <Text as="p" size="1" color="gray" mb="1">{t("dashboard.myActivity.overdue")}</Text>
+        <Box className="dash-my-summary__item">
+          <Text as="p" size="1" color="gray" mb="1">
+            {t("dashboard.myActivity.overdue")}
+          </Text>
           <Text
             as="p"
             size="5"
             weight="bold"
-            className="dash-chart-summary__value"
-            style={{ color: (data?.overdueCount ?? 0) > 0 ? "var(--red-9)" : undefined }}
+            className="dash-my-summary__value"
+            style={{ color: overdue > 0 ? "var(--orange-11)" : undefined }}
           >
             {data?.overdueCount ?? "—"}
           </Text>
         </Box>
-        <Box className="dash-chart-summary__item">
-          <Text as="p" size="1" color="gray" mb="1">{t("dashboard.myActivity.transmitted")}</Text>
-          <Text as="p" size="5" weight="bold" className="dash-chart-summary__value">
+        <Box className="dash-my-summary__item">
+          <Text as="p" size="1" color="gray" mb="1">
+            {t("dashboard.myActivity.transmitted")}
+          </Text>
+          <Text as="p" size="5" weight="bold" className="dash-my-summary__value">
             {data?.transmittedRecentCount ?? "—"}
           </Text>
         </Box>
@@ -60,24 +69,57 @@ export function MyActivityWidget({ data }: { data: DashboardMyActivity | null })
       {!data || data.items.length === 0 ? (
         <EmptyBlock title={t("dashboard.myActivity.empty")} />
       ) : (
-        <div>
+        <div className="dash-my-list">
           {data.items.slice(0, 8).map((item) => (
-            <Link key={item.passageId} href={`/files/${item.fileId}`} className="dash-activity" style={{ textDecoration: "none", color: "inherit" }}>
+            <Link
+              key={item.passageId}
+              href={`/files/${item.fileId}`}
+              className="dash-activity dash-activity--link"
+            >
               <span
-                className="dash-activity__dot"
-                style={{ background: item.overdue ? "#f97316" : "#12b76a" }}
+                className={`dash-activity__dot${item.overdue ? " dash-activity__dot--late" : " dash-activity__dot--ok"}`}
+                aria-hidden
               />
               <Box style={{ flex: 1, minWidth: 0 }}>
                 <Flex justify="between" align="start" gap="2">
-                  <Text size="2" weight="medium" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <Text
+                    size="2"
+                    weight="medium"
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      fontFamily: item.fileReferenceNumber
+                        ? "var(--font-geist-mono), ui-monospace, monospace"
+                        : undefined,
+                    }}
+                  >
                     {item.fileReferenceNumber ?? item.fileSubject}
                   </Text>
                   <span className={`dash-status ${item.overdue ? "dash-status--pending" : "dash-status--ok"}`}>
                     {item.overdue ? t("dashboard.myActivity.late") : t("dashboard.myActivity.onTime")}
                   </span>
                 </Flex>
-                <Text size="1" color="gray">
-                  {item.stepLabel} · {t("dashboard.myActivity.dueOn", { date: formatDate(locale, item.dueAt) })}
+                {item.fileReferenceNumber && item.fileSubject ? (
+                  <Text
+                    as="p"
+                    size="1"
+                    mt="1"
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      color: "var(--gray-12)",
+                    }}
+                  >
+                    {item.fileSubject}
+                  </Text>
+                ) : null}
+                <Text as="p" size="1" color="gray" mt="1">
+                  {item.stepLabel}
+                  {item.dueAt
+                    ? ` · ${t("dashboard.myActivity.dueOn", { date: formatDate(locale, item.dueAt) })}`
+                    : ""}
                 </Text>
               </Box>
             </Link>
@@ -91,6 +133,9 @@ export function MyActivityWidget({ data }: { data: DashboardMyActivity | null })
 /** DSH-02 — charge par agent, uniquement visible si le périmètre contient des subordonnés. */
 export function WorkloadWidget({ data }: { data: DashboardWorkloadEntry[] | null }) {
   const { t } = useTranslation();
+  const preview = (data ?? []).slice(0, 5);
+  const hasMore = (data?.length ?? 0) > 5;
+
   return (
     <div className="dash-card">
       <h2 className="dash-card__title">{t("dashboard.workload.title")}</h2>
@@ -98,34 +143,43 @@ export function WorkloadWidget({ data }: { data: DashboardWorkloadEntry[] | null
       {!data || data.length === 0 ? (
         <EmptyBlock title={t("dashboard.workload.empty")} />
       ) : (
-        <Table.Root variant="surface" size="1">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeaderCell>{t("dashboard.workload.agent")}</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>{t("dashboard.workload.organization")}</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell align="right">{t("dashboard.workload.active")}</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell align="right">{t("dashboard.workload.overdue")}</Table.ColumnHeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {data.slice(0, 10).map((entry) => (
-              <Table.Row key={entry.userId}>
-                <Table.Cell>{entry.firstName} {entry.lastName}</Table.Cell>
-                <Table.Cell>
-                  <Text size="1" color="gray">{entry.organizationCode ?? "—"}</Text>
-                </Table.Cell>
-                <Table.Cell align="right">{entry.activeCount}</Table.Cell>
-                <Table.Cell align="right">
-                  {entry.overdueCount > 0 ? (
-                    <Badge color="red" variant="soft">{entry.overdueCount}</Badge>
-                  ) : (
-                    <Text color="gray">0</Text>
-                  )}
-                </Table.Cell>
+        <>
+          <Table.Root variant="surface" size="1">
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeaderCell>{t("dashboard.workload.agent")}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{t("dashboard.workload.organization")}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell align="right">{t("dashboard.workload.active")}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell align="right">{t("dashboard.workload.overdue")}</Table.ColumnHeaderCell>
               </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
+            </Table.Header>
+            <Table.Body>
+              {preview.map((entry) => (
+                <Table.Row key={entry.userId}>
+                  <Table.Cell>{entry.firstName} {entry.lastName}</Table.Cell>
+                  <Table.Cell>
+                    <Text size="1" color="gray">{entry.organizationCode ?? "—"}</Text>
+                  </Table.Cell>
+                  <Table.Cell align="right">{entry.activeCount}</Table.Cell>
+                  <Table.Cell align="right">
+                    {entry.overdueCount > 0 ? (
+                      <Badge color="red" variant="soft">{entry.overdueCount}</Badge>
+                    ) : (
+                      <Text color="gray">0</Text>
+                    )}
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Root>
+          {hasMore && (
+            <Flex justify="end" mt="3">
+              <Link href="/dashboard/workload" className="dash-see-more">
+                {t("dashboard.seeMore")}
+              </Link>
+            </Flex>
+          )}
+        </>
       )}
     </div>
   );
@@ -135,6 +189,9 @@ export function WorkloadWidget({ data }: { data: DashboardWorkloadEntry[] | null
 export function OverdueFilesWidget({ data }: { data: DashboardOverdueFile[] | null }) {
   const { t } = useTranslation();
   const locale = useLocale();
+  const preview = (data ?? []).slice(0, 5);
+  const hasMore = (data?.length ?? 0) > 5;
+
   return (
     <div className="dash-card">
       <h2 className="dash-card__title">{t("dashboard.overdueFiles.title")}</h2>
@@ -142,41 +199,50 @@ export function OverdueFilesWidget({ data }: { data: DashboardOverdueFile[] | nu
       {!data || data.length === 0 ? (
         <EmptyBlock title={t("dashboard.overdueFiles.empty")} />
       ) : (
-        <Table.Root variant="surface" size="1">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeaderCell>{t("dashboard.overdueFiles.reference")}</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>{t("dashboard.overdueFiles.step")}</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>{t("dashboard.overdueFiles.responsible")}</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>{t("dashboard.overdueFiles.dueAt")}</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell align="right">{t("dashboard.overdueFiles.daysLate")}</Table.ColumnHeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {data.map((file) => (
-              <Table.Row key={file.fileId}>
-                <Table.Cell>
-                  <Link href={`/files/${file.fileId}`} style={{ fontFamily: "var(--font-geist-mono)" }}>
-                    {file.referenceNumber ?? "—"}
-                  </Link>
-                  <Text as="p" size="1" color="gray" style={{ maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {file.subject}
-                  </Text>
-                </Table.Cell>
-                <Table.Cell>
-                  <Text size="1" color="gray">{file.stepLabel}</Text>
-                </Table.Cell>
-                <Table.Cell>{file.responsibleUserName ?? "—"}</Table.Cell>
-                <Table.Cell>
-                  <Text size="1" color="gray">{formatDate(locale, file.dueAt)}</Text>
-                </Table.Cell>
-                <Table.Cell align="right">
-                  <Badge color="red" variant="soft">{file.daysOverdue} j</Badge>
-                </Table.Cell>
+        <>
+          <Table.Root variant="surface" size="1">
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeaderCell>{t("dashboard.overdueFiles.reference")}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{t("dashboard.overdueFiles.step")}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{t("dashboard.overdueFiles.responsible")}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{t("dashboard.overdueFiles.dueAt")}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell align="right">{t("dashboard.overdueFiles.daysLate")}</Table.ColumnHeaderCell>
               </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
+            </Table.Header>
+            <Table.Body>
+              {preview.map((file) => (
+                <Table.Row key={file.fileId}>
+                  <Table.Cell>
+                    <Link href={`/files/${file.fileId}`} style={{ fontFamily: "var(--font-geist-mono)" }}>
+                      {file.referenceNumber ?? "—"}
+                    </Link>
+                    <Text as="p" size="1" color="gray" style={{ maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {file.subject}
+                    </Text>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Text size="1" color="gray">{file.stepLabel}</Text>
+                  </Table.Cell>
+                  <Table.Cell>{file.responsibleUserName ?? "—"}</Table.Cell>
+                  <Table.Cell>
+                    <Text size="1" color="gray">{formatDate(locale, file.dueAt)}</Text>
+                  </Table.Cell>
+                  <Table.Cell align="right">
+                    <Badge color="red" variant="soft">{file.daysOverdue} j</Badge>
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Root>
+          {hasMore && (
+            <Flex justify="end" mt="3">
+              <Link href="/dashboard/overdue" className="dash-see-more">
+                {t("dashboard.seeMore")}
+              </Link>
+            </Flex>
+          )}
+        </>
       )}
     </div>
   );

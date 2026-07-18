@@ -120,7 +120,7 @@ export default function DashboardPage() {
           getDashboardMyActivity(),
           getDashboardDelayByType({ windowDays: 30 }),
           isWide ? getDashboardWorkload() : Promise.resolve(null),
-          isWide ? getDashboardOverdueFiles({ limit: 8 }) : Promise.resolve(null),
+          isWide ? getDashboardOverdueFiles({ limit: 6 }) : Promise.resolve(null),
           isTopLevel ? getDashboardComplianceRanking() : Promise.resolve(null),
         ]);
         if (cancelled) return;
@@ -377,8 +377,8 @@ export default function DashboardPage() {
               </Flex>
               {profileRows.map(({ key, v }) => (
                 <div key={key} className="dash-profile-row">
-                  <Text color="gray">{t(`dashboard.${key}`)}</Text>
-                  <Text weight="medium">{v}</Text>
+                  <span className="dash-profile-row__label">{t(`dashboard.${key}`)}</span>
+                  <span className="dash-profile-row__value">{v}</span>
                 </div>
               ))}
             </div>

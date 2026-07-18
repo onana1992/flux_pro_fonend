@@ -45,6 +45,8 @@ import {
   transmitFilePassage,
 } from "@/lib/api";
 import { canSeePermission } from "@/lib/auth-storage";
+import { formatBusinessDateTime } from "@/lib/datetime";
+import { preventDialogDismissFromPortals } from "@/lib/dialog-portals";
 import { flattenOrgTreeHierarchical } from "@/lib/org-tree";
 import type {
   ChainStepTemplate,
@@ -78,14 +80,7 @@ function passageStatusColor(status: PassageStatus): "gray" | "blue" | "green" | 
 }
 
 function formatDateTime(iso?: string | null): string {
-  if (!iso) return "—";
-  try {
-    return new Intl.DateTimeFormat(undefined, { dateStyle: "short", timeStyle: "short" }).format(
-      new Date(iso),
-    );
-  } catch {
-    return iso;
-  }
+  return formatBusinessDateTime(iso);
 }
 
 function delayLabel(value?: number, unit?: DelayUnit | null, t?: (k: string) => string): string {
@@ -606,7 +601,13 @@ function PassageStepDetailDialog({
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Content maxWidth="520px" style={{ padding: 0, overflow: "hidden" }}>
+      <Dialog.Content
+        maxWidth="520px"
+        style={{ padding: 0, overflow: "hidden" }}
+        onPointerDownOutside={preventDialogDismissFromPortals}
+        onInteractOutside={preventDialogDismissFromPortals}
+        onFocusOutside={preventDialogDismissFromPortals}
+      >
         <Box
           px="5"
           pt="5"
@@ -960,7 +961,13 @@ function ResponsibleUserDialog({
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Content maxWidth="480px" style={{ padding: 0, overflow: "hidden" }}>
+      <Dialog.Content
+        maxWidth="480px"
+        style={{ padding: 0, overflow: "hidden" }}
+        onPointerDownOutside={preventDialogDismissFromPortals}
+        onInteractOutside={preventDialogDismissFromPortals}
+        onFocusOutside={preventDialogDismissFromPortals}
+      >
         <Box
           px="5"
           pt="5"

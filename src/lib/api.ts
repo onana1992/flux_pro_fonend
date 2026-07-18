@@ -44,6 +44,8 @@ import type {
   AlertRuleRequest,
   AlertResponse,
   UnreadCountResponse,
+  SystemClock,
+  ClockAdjustUnit,
   DashboardSummary,
   DashboardMyActivity,
   DashboardWorkloadEntry,
@@ -1065,4 +1067,32 @@ export async function downloadDashboardExport(params: {
   anchor.download = params.filename;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+export async function getSystemClock(): Promise<SystemClock> {
+  return apiFetch<SystemClock>("/api/system/clock");
+}
+
+export async function setSystemClock(instant: string): Promise<SystemClock> {
+  return apiFetch<SystemClock>("/api/system/clock/set", {
+    method: "POST",
+    body: JSON.stringify({ instant }),
+  });
+}
+
+export async function adjustSystemClock(amount: number, unit: ClockAdjustUnit): Promise<SystemClock> {
+  return apiFetch<SystemClock>("/api/system/clock/adjust", {
+    method: "POST",
+    body: JSON.stringify({ amount, unit }),
+  });
+}
+
+export async function resetSystemClock(): Promise<SystemClock> {
+  return apiFetch<SystemClock>("/api/system/clock/reset", { method: "POST" });
+}
+
+export async function runAlertEngineNow(): Promise<{ ok: boolean; now: string; mode: string }> {
+  return apiFetch<{ ok: boolean; now: string; mode: string }>("/api/system/clock/run-alert-engine", {
+    method: "POST",
+  });
 }

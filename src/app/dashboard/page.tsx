@@ -35,6 +35,7 @@ import {
   getDashboardOverdueFiles,
   getDashboardSummary,
   getDashboardWorkload,
+  getSystemClock,
 } from "@/lib/api";
 import type {
   DashboardDelayByType,
@@ -43,7 +44,9 @@ import type {
   DashboardOverdueFile,
   DashboardSummary,
   DashboardWorkloadEntry,
+  SystemClock,
 } from "@/lib/types";
+import { BUSINESS_ZONE } from "@/lib/datetime";
 import {
   ComplianceRankingWidget,
   DelayByTypeWidget,
@@ -96,6 +99,9 @@ export default function DashboardPage() {
   const [delayByType, setDelayByType] = useState<DashboardDelayByType[] | null>(null);
   const [ranking, setRanking] = useState<DashboardOrganizationRanking[] | null>(null);
   const [dashError, setDashError] = useState<string | null>(null);
+  const [clock, setClock] = useState<SystemClock | null>(null);
+  const [clockSyncedAt, setClockSyncedAt] = useState(0);
+  const [nowMs, setNowMs] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -137,13 +143,54 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    function applyClock(next: SystemClock) {
+      if (cancelled) return;
+      setClock(next);
+      setClockSyncedAt(Date.now());
+      setNowMs(Date.now());
+    }
+
+    async function loadClock() {
+      try {
+        applyClock(await getSystemClock());
+      } catch {
+        // La date locale reste disponible si l'horloge serveur est momentanément inaccessible.
+      }
+    }
+
+    function handleClockUpdate(event: Event) {
+      applyClock((event as CustomEvent<SystemClock>).detail);
+    }
+
+    loadClock();
+    const pollId = window.setInterval(loadClock, 30_000);
+    const tickId = window.setInterval(() => setNowMs(Date.now()), 1_000);
+    window.addEventListener("fluxpro:system-clock-updated", handleClockUpdate);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(pollId);
+      window.clearInterval(tickId);
+      window.removeEventListener("fluxpro:system-clock-updated", handleClockUpdate);
+    };
+  }, []);
+
   const locale = i18n.language?.startsWith("en") ? "en-GB" : "fr-FR";
-  const today = new Date().toLocaleDateString(locale, {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  const clockNowMs = nowMs !== null && clock?.mode === "TEST"
+    ? new Date(clock.now).getTime() + (nowMs - clockSyncedAt)
+    : nowMs;
+  const today = clockNowMs === null
+    ? "—"
+    : new Date(clockNowMs).toLocaleDateString(locale, {
+        timeZone: clock?.zoneId || BUSINESS_ZONE,
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
 
   const isWide = summary ? summary.scopeWidth !== "SELF" : false;
   const isTopLevel = summary ? summary.scopeWidth === "GLOBAL" || summary.scopeWidth === "REGIONAL" : false;

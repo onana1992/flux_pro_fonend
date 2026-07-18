@@ -33,12 +33,14 @@ import {
   getFile,
   getFileTypes,
   getOrganizationTree,
+  getSystemClock,
   submitFile,
   updateFile,
   uploadFileAttachment,
 } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { FilePriorityBadge } from "@/components/FilesTable";
+import { businessDateFromInstant } from "@/lib/datetime";
 import type {
   FileDetail,
   FilePriority,
@@ -219,7 +221,11 @@ export function FileFormPage({ mode, fileId }: FileFormPageProps) {
     setLoading(true);
     setError(null);
     try {
-      const [types, tree] = await Promise.all([getFileTypes(), getOrganizationTree()]);
+      const [types, tree, clock] = await Promise.all([
+        getFileTypes(),
+        getOrganizationTree(),
+        getSystemClock().catch(() => null),
+      ]);
       setFileTypes(types);
       setOrganizations(tree);
       if (mode === "edit" && fileId) {
@@ -237,15 +243,22 @@ export function FileFormPage({ mode, fileId }: FileFormPageProps) {
           receivedAt: detail.receivedAt,
           priority: detail.priority,
         });
-      } else if (!form.organizationId && user?.organization.id) {
-        setForm((prev) => ({ ...prev, organizationId: user.organization.id }));
+      } else {
+        const clockDate = clock?.now
+          ? businessDateFromInstant(clock.now, clock.zoneId)
+          : new Date().toISOString().slice(0, 10);
+        setForm((prev) => ({
+          ...prev,
+          organizationId: prev.organizationId || user?.organization.id || "",
+          receivedAt: clockDate,
+        }));
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("common.errorLoad"));
     } finally {
       setLoading(false);
     }
-  }, [fileId, form.organizationId, mode, router, t, user?.organization.id]);
+  }, [fileId, mode, router, t, user?.organization.id]);
 
   useEffect(() => {
     load();

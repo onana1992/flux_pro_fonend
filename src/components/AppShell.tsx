@@ -33,6 +33,7 @@ import { useAuth } from "./AuthProvider";
 import { canAccessAdmin, canReadUsers, canSeePermission, isSuperAdmin } from "@/lib/auth-storage";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { NotificationBell } from "./NotificationBell";
+import { TestClockBar } from "./TestClockBar";
 import { useThemeAppearance } from "./ThemeToggle";
 import { UserProfileMenu } from "./UserProfileMenu";
 
@@ -447,6 +448,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Flex>
 
           <Flex align="center" gap="2" style={{ flexShrink: 0, flexWrap: "nowrap" }}>
+            <TestClockBar />
             <button
               type="button"
               className="header-icon-btn"

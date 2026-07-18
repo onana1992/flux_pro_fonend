@@ -427,7 +427,7 @@ export interface PassageReasonRequest {
   reason: string;
 }
 
-export type AlertChannel = "IN_APP" | "EMAIL" | "SMS";
+export type AlertChannel = "IN_APP" | "EMAIL";
 
 export type AlertStatus = "PENDING" | "SENT" | "FAILED" | "READ";
 
@@ -480,6 +480,19 @@ export interface AlertRuleRequest {
   targetRole?: UserRole;
   priorityScope?: string;
   active: boolean;
+}
+
+export type ClockMode = "NORMAL" | "TEST";
+export type ClockAdjustUnit = "HOURS" | "DAYS" | "WORKING_DAYS" | "WORKING_HOURS";
+
+export interface SystemClock {
+  mode: ClockMode;
+  now: string;
+  zoneId: string;
+  display: string;
+  mutable: boolean;
+  artificialNow?: string | null;
+  wallSyncedAt?: string | null;
 }
 
 export interface AlertResponse {

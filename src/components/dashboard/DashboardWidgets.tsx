@@ -11,6 +11,7 @@ import type {
   DashboardWorkloadEntry,
 } from "@/lib/types";
 import { EmptyBlock } from "@/components/ui/shared";
+import { formatBusinessDate } from "@/lib/datetime";
 
 function useLocale() {
   const { i18n } = useTranslation();
@@ -18,8 +19,7 @@ function useLocale() {
 }
 
 function formatDate(locale: string, value?: string | null): string {
-  if (!value) return "—";
-  return new Date(value).toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric" });
+  return formatBusinessDate(value, locale);
 }
 
 /** DSH-01 — jamais filtré par périmètre organisationnel : toujours l'activité de l'appelant. */

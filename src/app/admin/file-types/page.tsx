@@ -27,6 +27,7 @@ import {
   updateFileType,
 } from "@/lib/api";
 import { hasPermission } from "@/lib/auth-storage";
+import { preventDialogDismissFromPortals } from "@/lib/dialog-portals";
 import type { FileType, FileTypeRequest } from "@/lib/types";
 import { LoadingBlock, PageHeader, StatusAlert } from "@/components/ui/shared";
 
@@ -237,7 +238,12 @@ export default function AdminFileTypesPage() {
         </Card>
 
         <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
-          <Dialog.Content maxWidth="520px">
+          <Dialog.Content
+            maxWidth="520px"
+            onPointerDownOutside={preventDialogDismissFromPortals}
+            onInteractOutside={preventDialogDismissFromPortals}
+            onFocusOutside={preventDialogDismissFromPortals}
+          >
             <Dialog.Title>
               {editingId ? t("admin.fileTypes.editTitle") : t("admin.fileTypes.createTitle")}
             </Dialog.Title>

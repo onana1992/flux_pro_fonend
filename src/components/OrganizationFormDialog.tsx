@@ -20,6 +20,7 @@ import {
 } from "@/lib/api";
 import { collectDescendantIds, flattenOrgTree } from "@/lib/org-tree";
 import type { OrganisationTreeNode, OrganizationRequest, OrganizationType } from "@/lib/types";
+import { preventDialogDismissFromPortals } from "@/lib/dialog-portals";
 
 const EMPTY_FORM: OrganizationRequest = {
   code: "",
@@ -129,7 +130,12 @@ export function OrganizationFormDialog({
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Content maxWidth="480px">
+      <Dialog.Content
+        maxWidth="480px"
+        onPointerDownOutside={preventDialogDismissFromPortals}
+        onInteractOutside={preventDialogDismissFromPortals}
+        onFocusOutside={preventDialogDismissFromPortals}
+      >
         <Dialog.Title>
           {isEdit ? t("admin.org.editTitle") : t("admin.org.createTitle")}
         </Dialog.Title>

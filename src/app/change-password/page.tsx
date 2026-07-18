@@ -3,14 +3,20 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { CheckCircledIcon, CircleIcon, EyeClosedIcon, EyeOpenIcon, LockClosedIcon } from "@radix-ui/react-icons";
+import {
+  CheckCircledIcon,
+  CircleIcon,
+  EyeClosedIcon,
+  EyeOpenIcon,
+  LockClosedIcon,
+  MoonIcon,
+  SunIcon,
+} from "@radix-ui/react-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/components/AuthProvider";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useThemeAppearance } from "@/components/ThemeToggle";
 import { ApiError, changePassword } from "@/lib/api";
-
-const fieldClass =
-  "w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 pr-16 text-sm text-gray-800 transition placeholder:text-gray-400 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/15";
 
 function PasswordField({
   id,
@@ -20,6 +26,7 @@ function PasswordField({
   show,
   onToggleShow,
   autoComplete,
+  dark,
 }: {
   id: string;
   label: string;
@@ -28,11 +35,22 @@ function PasswordField({
   show: boolean;
   onToggleShow: () => void;
   autoComplete: string;
+  dark: boolean;
 }) {
   const { t } = useTranslation();
+  const fieldClass = [
+    "w-full rounded-lg border px-3.5 py-2.5 pr-16 text-sm transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/15",
+    dark
+      ? "border-gray-700 bg-gray-950 text-gray-100 placeholder:text-gray-500"
+      : "border-gray-200 bg-white text-gray-800 placeholder:text-gray-400",
+  ].join(" ");
+
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-gray-700">
+      <label
+        htmlFor={id}
+        className={`mb-1.5 block text-sm font-medium ${dark ? "text-gray-300" : "text-gray-700"}`}
+      >
         {label}
       </label>
       <div className="relative">
@@ -49,7 +67,10 @@ function PasswordField({
         <button
           type="button"
           onClick={onToggleShow}
-          className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1 text-xs text-gray-500 hover:text-[#2563EB]"
+          className={[
+            "absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1 text-xs hover:text-[#2563EB]",
+            dark ? "text-gray-400" : "text-gray-500",
+          ].join(" ")}
         >
           {show ? <EyeOpenIcon width={14} height={14} /> : <EyeClosedIcon width={14} height={14} />}
           {show ? t("changePassword.hidePassword") : t("changePassword.showPassword")}
@@ -59,9 +80,13 @@ function PasswordField({
   );
 }
 
-function RequirementRow({ met, label }: { met: boolean; label: string }) {
+function RequirementRow({ met, label, dark }: { met: boolean; label: string; dark: boolean }) {
   return (
-    <li className={`flex items-center gap-1.5 text-xs transition ${met ? "text-emerald-600" : "text-gray-400"}`}>
+    <li
+      className={`flex items-center gap-1.5 text-xs transition ${
+        met ? "text-emerald-600" : dark ? "text-gray-500" : "text-gray-400"
+      }`}
+    >
       {met ? <CheckCircledIcon width={14} height={14} /> : <CircleIcon width={14} height={14} />}
       {label}
     </li>
@@ -71,7 +96,9 @@ function RequirementRow({ met, label }: { met: boolean; label: string }) {
 export default function ChangePasswordPage() {
   const { t } = useTranslation();
   const { user, logout, applySession } = useAuth();
+  const { appearance, toggleAppearance } = useThemeAppearance();
   const router = useRouter();
+  const dark = appearance === "dark";
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -85,10 +112,6 @@ export default function ChangePasswordPage() {
   useEffect(() => {
     if (!user) {
       router.replace("/login");
-      return;
-    }
-    if (!user.mustChangePassword) {
-      router.replace("/dashboard");
     }
   }, [user, router]);
 
@@ -104,8 +127,9 @@ export default function ChangePasswordPage() {
   );
 
   const requirementsMet = requirements.length && requirements.uppercase && requirements.digit && requirements.special;
+  const forced = Boolean(user?.mustChangePassword);
 
-  if (!user || !user.mustChangePassword) return null;
+  if (!user) return null;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -122,7 +146,7 @@ export default function ChangePasswordPage() {
     try {
       const tokens = await changePassword(currentPassword, newPassword);
       applySession(tokens.user);
-      router.replace("/dashboard");
+      router.replace(forced ? "/dashboard" : "/profile");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("common.connectionFailed"));
     } finally {
@@ -141,12 +165,34 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-[#F3F4F6] px-4 py-10 sm:px-6">
-      <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6">
+    <div
+      className={[
+        "relative flex min-h-screen items-center justify-center px-4 py-10 sm:px-6",
+        dark ? "bg-gray-950" : "bg-[#F3F4F6]",
+      ].join(" ")}
+    >
+      <div className="absolute right-4 top-4 z-20 flex items-center gap-2 sm:right-6 sm:top-6">
+        <button
+          type="button"
+          className="header-icon-btn"
+          aria-label={appearance === "light" ? t("header.darkMode") : t("header.lightMode")}
+          onClick={toggleAppearance}
+        >
+          {appearance === "light" ? (
+            <MoonIcon width={20} height={20} />
+          ) : (
+            <SunIcon width={20} height={20} />
+          )}
+        </button>
         <LanguageSwitcher variant="standalone" />
       </div>
 
-      <div className="flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-lg md:min-h-[34rem] md:flex-row">
+      <div
+        className={[
+          "flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border shadow-lg md:min-h-[34rem] md:flex-row",
+          dark ? "border-gray-800 bg-gray-900" : "border-gray-200/80 bg-white",
+        ].join(" ")}
+      >
         {/* Branding */}
         <aside className="relative flex flex-col justify-center overflow-hidden bg-gradient-to-br from-[#1E3A8A] to-[#2563EB] px-8 py-10 text-white md:w-[44%] md:px-10 md:py-12">
           <div className="pointer-events-none absolute -right-16 top-12 h-48 w-48 rounded-full bg-white/10 blur-3xl" aria-hidden />
@@ -175,11 +221,20 @@ export default function ChangePasswordPage() {
         {/* Formulaire */}
         <main className="flex flex-1 items-center px-8 py-10 sm:px-10 md:py-12">
           <div className="mx-auto w-full max-w-xs sm:max-w-sm">
-            <div className="mb-4 inline-flex size-10 items-center justify-center rounded-full bg-blue-50 text-[#2563EB]">
+            <div
+              className={[
+                "mb-4 inline-flex size-10 items-center justify-center rounded-full text-[#2563EB]",
+                dark ? "bg-blue-950" : "bg-blue-50",
+              ].join(" ")}
+            >
               <LockClosedIcon width={20} height={20} />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900">{t("changePassword.title")}</h2>
-            <p className="mt-1.5 mb-6 text-sm text-gray-500">{t("changePassword.subtitle")}</p>
+            <h2 className={`text-xl font-semibold ${dark ? "text-gray-100" : "text-gray-900"}`}>
+              {t("changePassword.title")}
+            </h2>
+            <p className={`mt-1.5 mb-6 text-sm ${dark ? "text-gray-400" : "text-gray-500"}`}>
+              {t("changePassword.subtitle")}
+            </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <PasswordField
@@ -190,6 +245,7 @@ export default function ChangePasswordPage() {
                 show={showCurrent}
                 onToggleShow={() => setShowCurrent((v) => !v)}
                 autoComplete="current-password"
+                dark={dark}
               />
 
               <PasswordField
@@ -200,14 +256,36 @@ export default function ChangePasswordPage() {
                 show={showNew}
                 onToggleShow={() => setShowNew((v) => !v)}
                 autoComplete="new-password"
+                dark={dark}
               />
 
               {(newPassword.length > 0 || confirmPassword.length > 0) && (
-                <ul className="grid grid-cols-2 gap-x-3 gap-y-1 rounded-lg bg-gray-50 p-3">
-                  <RequirementRow met={requirements.length} label={t("changePassword.requirementLength")} />
-                  <RequirementRow met={requirements.uppercase} label={t("changePassword.requirementUppercase")} />
-                  <RequirementRow met={requirements.digit} label={t("changePassword.requirementDigit")} />
-                  <RequirementRow met={requirements.special} label={t("changePassword.requirementSpecial")} />
+                <ul
+                  className={[
+                    "grid grid-cols-2 gap-x-3 gap-y-1 rounded-lg p-3",
+                    dark ? "bg-gray-950" : "bg-gray-50",
+                  ].join(" ")}
+                >
+                  <RequirementRow
+                    met={requirements.length}
+                    label={t("changePassword.requirementLength")}
+                    dark={dark}
+                  />
+                  <RequirementRow
+                    met={requirements.uppercase}
+                    label={t("changePassword.requirementUppercase")}
+                    dark={dark}
+                  />
+                  <RequirementRow
+                    met={requirements.digit}
+                    label={t("changePassword.requirementDigit")}
+                    dark={dark}
+                  />
+                  <RequirementRow
+                    met={requirements.special}
+                    label={t("changePassword.requirementSpecial")}
+                    dark={dark}
+                  />
                 </ul>
               )}
 
@@ -219,10 +297,17 @@ export default function ChangePasswordPage() {
                 show={showConfirm}
                 onToggleShow={() => setShowConfirm((v) => !v)}
                 autoComplete="new-password"
+                dark={dark}
               />
 
               {error && (
-                <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+                <p
+                  role="alert"
+                  className={[
+                    "rounded-lg px-3 py-2 text-sm",
+                    dark ? "bg-red-950/50 text-red-300" : "bg-red-50 text-red-600",
+                  ].join(" ")}
+                >
                   {error}
                 </p>
               )}
@@ -230,22 +315,37 @@ export default function ChangePasswordPage() {
               <button
                 type="submit"
                 disabled={submitting || !requirementsMet || !requirements.match}
-                className="mt-2 w-full rounded-lg bg-[#2563EB] py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                className={[
+                  "mt-2 w-full rounded-lg bg-[#2563EB] py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 disabled:cursor-not-allowed disabled:opacity-60",
+                  dark ? "focus:ring-offset-gray-900" : "focus:ring-offset-2",
+                ].join(" ")}
               >
                 {submitting ? t("changePassword.submitting") : t("changePassword.submit")}
               </button>
             </form>
 
-            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-400">
-              <span>{t("changePassword.logoutHint")}</span>
-              <button
-                type="button"
-                onClick={handleLogout}
-                disabled={loggingOut}
-                className="font-medium text-[#2563EB] hover:underline disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {t("changePassword.logout")}
-              </button>
+            <div className={`mt-6 flex items-center justify-center gap-2 text-xs ${dark ? "text-gray-500" : "text-gray-400"}`}>
+              {forced ? (
+                <>
+                  <span>{t("changePassword.logoutHint")}</span>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    disabled={loggingOut}
+                    className="font-medium text-[#2563EB] hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {t("changePassword.logout")}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => router.push("/profile")}
+                  className="font-medium text-[#2563EB] hover:underline"
+                >
+                  {t("profile.myProfile")}
+                </button>
+              )}
             </div>
           </div>
         </main>

@@ -40,6 +40,7 @@ import {
   uploadFileAttachment,
 } from "@/lib/api";
 import { hasPermission } from "@/lib/auth-storage";
+import { formatBusinessDateTime } from "@/lib/datetime";
 import type { AlertResponse, FileAttachment, FileDetail, FileStatus } from "@/lib/types";
 import { LoadingBlock, StatusAlert } from "@/components/ui/shared";
 
@@ -68,15 +69,7 @@ function formatBytes(bytes: number): string {
 }
 
 function formatDateTime(iso?: string | null): string {
-  if (!iso) return "—";
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
+  return formatBusinessDateTime(iso, undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
 

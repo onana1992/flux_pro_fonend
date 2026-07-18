@@ -3,20 +3,19 @@
 import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { EyeClosedIcon, EyeOpenIcon } from "@radix-ui/react-icons";
+import { EyeClosedIcon, EyeOpenIcon, MoonIcon, SunIcon } from "@radix-ui/react-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/components/AuthProvider";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useThemeAppearance } from "@/components/ThemeToggle";
 import { ApiError } from "@/lib/api";
-
-const fieldClass =
-  "w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 transition placeholder:text-gray-400 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/15";
-const passwordFieldClass = `${fieldClass} pr-16`;
 
 export default function LoginPage() {
   const { t } = useTranslation();
   const { login, user, sessionExpired, clearSessionExpired } = useAuth();
+  const { appearance, toggleAppearance } = useThemeAppearance();
   const router = useRouter();
+  const dark = appearance === "dark";
   const [email, setEmail] = useState("e.fotso@mintp.cm");
   const [password, setPassword] = useState("Mintp@2025");
   const [remember, setRemember] = useState(false);
@@ -24,6 +23,14 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showSessionExpired, setShowSessionExpired] = useState(false);
+
+  const fieldClass = [
+    "w-full rounded-lg border px-3.5 py-2.5 text-sm transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/15",
+    dark
+      ? "border-gray-700 bg-gray-950 text-gray-100 placeholder:text-gray-500"
+      : "border-gray-200 bg-white text-gray-800 placeholder:text-gray-400",
+  ].join(" ");
+  const passwordFieldClass = `${fieldClass} pr-16`;
 
   useEffect(() => {
     if (user) router.replace("/dashboard");
@@ -56,12 +63,34 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-[#F3F4F6] px-4 py-10 sm:px-6">
-      <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6">
+    <div
+      className={[
+        "relative flex min-h-screen items-center justify-center px-4 py-10 sm:px-6",
+        dark ? "bg-gray-950" : "bg-[#F3F4F6]",
+      ].join(" ")}
+    >
+      <div className="absolute right-4 top-4 z-20 flex items-center gap-2 sm:right-6 sm:top-6">
+        <button
+          type="button"
+          className="header-icon-btn"
+          aria-label={appearance === "light" ? t("header.darkMode") : t("header.lightMode")}
+          onClick={toggleAppearance}
+        >
+          {appearance === "light" ? (
+            <MoonIcon width={20} height={20} />
+          ) : (
+            <SunIcon width={20} height={20} />
+          )}
+        </button>
         <LanguageSwitcher variant="standalone" />
       </div>
 
-      <div className="flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-lg md:min-h-[30rem] md:flex-row">
+      <div
+        className={[
+          "flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border shadow-lg md:min-h-[30rem] md:flex-row",
+          dark ? "border-gray-800 bg-gray-900" : "border-gray-200/80 bg-white",
+        ].join(" ")}
+      >
         {/* Branding — produit générique */}
         <aside className="relative flex flex-col justify-center overflow-hidden bg-gradient-to-br from-[#1E3A8A] to-[#2563EB] px-8 py-10 text-white md:w-[44%] md:px-10 md:py-12">
           <div className="pointer-events-none absolute -right-16 top-12 h-48 w-48 rounded-full bg-white/10 blur-3xl" aria-hidden />
@@ -91,12 +120,19 @@ export default function LoginPage() {
         {/* Formulaire */}
         <main className="flex flex-1 items-center px-8 py-10 sm:px-10 md:py-12">
           <div className="mx-auto w-full max-w-xs sm:max-w-sm">
-            <h2 className="text-xl font-semibold text-gray-900">{t("login.title")}</h2>
-            <p className="mt-1.5 mb-7 text-sm text-gray-500">{t("login.welcomeHint")}</p>
+            <h2 className={`text-xl font-semibold ${dark ? "text-gray-100" : "text-gray-900"}`}>
+              {t("login.title")}
+            </h2>
+            <p className={`mt-1.5 mb-7 text-sm ${dark ? "text-gray-400" : "text-gray-500"}`}>
+              {t("login.welcomeHint")}
+            </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="login-email" className="mb-1.5 block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="login-email"
+                  className={`mb-1.5 block text-sm font-medium ${dark ? "text-gray-300" : "text-gray-700"}`}
+                >
                   {t("login.email")}
                 </label>
                 <input
@@ -112,7 +148,10 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label htmlFor="login-password" className="mb-1.5 block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="login-password"
+                  className={`mb-1.5 block text-sm font-medium ${dark ? "text-gray-300" : "text-gray-700"}`}
+                >
                   {t("login.password")}
                 </label>
                 <div className="relative">
@@ -129,7 +168,10 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1 text-xs text-gray-500 hover:text-[#2563EB]"
+                    className={[
+                      "absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1 text-xs hover:text-[#2563EB]",
+                      dark ? "text-gray-400" : "text-gray-500",
+                    ].join(" ")}
                   >
                     {showPassword ? <EyeOpenIcon width={14} height={14} /> : <EyeClosedIcon width={14} height={14} />}
                     {showPassword ? t("login.hidePassword") : t("login.showPassword")}
@@ -137,24 +179,44 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <label className="flex cursor-pointer items-center gap-2 pt-1 text-sm text-gray-600">
+              <label
+                className={[
+                  "flex cursor-pointer items-center gap-2 pt-1 text-sm",
+                  dark ? "text-gray-400" : "text-gray-600",
+                ].join(" ")}
+              >
                 <input
                   type="checkbox"
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
-                  className="size-4 rounded border-gray-300 text-[#2563EB] focus:ring-[#2563EB]/20"
+                  className={[
+                    "size-4 rounded text-[#2563EB] focus:ring-[#2563EB]/20",
+                    dark ? "border-gray-600 bg-gray-950" : "border-gray-300",
+                  ].join(" ")}
                 />
                 {t("login.rememberMe")}
               </label>
 
               {showSessionExpired && !error && (
-                <p role="alert" className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                <p
+                  role="alert"
+                  className={[
+                    "rounded-lg px-3 py-2 text-sm",
+                    dark ? "bg-amber-950/50 text-amber-300" : "bg-amber-50 text-amber-700",
+                  ].join(" ")}
+                >
                   {t("login.sessionExpired")}
                 </p>
               )}
 
               {error && (
-                <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+                <p
+                  role="alert"
+                  className={[
+                    "rounded-lg px-3 py-2 text-sm",
+                    dark ? "bg-red-950/50 text-red-300" : "bg-red-50 text-red-600",
+                  ].join(" ")}
+                >
                   {error}
                 </p>
               )}
@@ -162,13 +224,18 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="mt-2 w-full rounded-lg bg-[#2563EB] py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                className={[
+                  "mt-2 w-full rounded-lg bg-[#2563EB] py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 disabled:cursor-not-allowed disabled:opacity-60",
+                  dark ? "focus:ring-offset-gray-900" : "focus:ring-offset-2",
+                ].join(" ")}
               >
                 {submitting ? t("login.submitting") : t("login.submit")}
               </button>
             </form>
 
-            <p className="mt-6 text-center text-[11px] text-gray-400">{t("login.poweredBy")}</p>
+            <p className={`mt-6 text-center text-[11px] ${dark ? "text-gray-500" : "text-gray-400"}`}>
+              {t("login.poweredBy")}
+            </p>
           </div>
         </main>
       </div>

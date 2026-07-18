@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   Avatar,
   Box,
@@ -11,8 +12,8 @@ import {
 import {
   ChevronDownIcon,
   ExitIcon,
-  GearIcon,
   InfoCircledIcon,
+  LockClosedIcon,
   PersonIcon,
 } from "@radix-ui/react-icons";
 import { useTranslation } from "react-i18next";
@@ -42,6 +43,7 @@ function MenuRow({
 
 export function UserProfileMenu({ user, onLogout }: UserProfileMenuProps) {
   const { t } = useTranslation();
+  const router = useRouter();
 
   return (
     <DropdownMenu.Root>
@@ -85,8 +87,16 @@ export function UserProfileMenu({ user, onLogout }: UserProfileMenuProps) {
         <Separator size="4" className="user-menu-divider" />
 
         <Box className="user-menu-items">
-          <MenuRow icon={<PersonIcon />} label={t("profile.editProfile")} />
-          <MenuRow icon={<GearIcon />} label={t("profile.accountSettings")} />
+          <MenuRow
+            icon={<PersonIcon />}
+            label={t("profile.myProfile")}
+            onSelect={() => router.push("/profile")}
+          />
+          <MenuRow
+            icon={<LockClosedIcon />}
+            label={t("profile.changePassword")}
+            onSelect={() => router.push("/change-password")}
+          />
           <MenuRow icon={<InfoCircledIcon />} label={t("profile.support")} />
         </Box>
 

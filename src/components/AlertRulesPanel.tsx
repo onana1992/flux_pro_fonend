@@ -16,6 +16,7 @@ import {
   updateAlertRule,
 } from "@/lib/api";
 import type { AlertRule, AlertRuleRequest, AlertTargetMode, AlertType, ChainStepTemplate, DelayUnit, UserRole } from "@/lib/types";
+import { preventDialogDismissFromPortals } from "@/lib/dialog-portals";
 import { LoadingBlock, StatusAlert } from "@/components/ui/shared";
 
 const ROLES: UserRole[] = [
@@ -303,7 +304,12 @@ export function AlertRulesPanel({
       )}
 
       <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
-        <Dialog.Content maxWidth="560px">
+        <Dialog.Content
+          maxWidth="560px"
+          onPointerDownOutside={preventDialogDismissFromPortals}
+          onInteractOutside={preventDialogDismissFromPortals}
+          onFocusOutside={preventDialogDismissFromPortals}
+        >
           <Dialog.Title>
             {editingId ? t("admin.chainTemplates.alerts.editRule") : t("admin.chainTemplates.alerts.addRule")}
           </Dialog.Title>
@@ -333,7 +339,7 @@ export function AlertRulesPanel({
                     onValueChange={(v) => setForm((f) => ({ ...f, chainStepTemplateId: v === "all" ? undefined : v }))}
                   >
                     <Select.Trigger style={{ width: "100%" }} />
-                    <Select.Content>
+                    <Select.Content position="popper">
                       <Select.Item value="all">{t("admin.chainTemplates.alerts.allSteps")}</Select.Item>
                       {steps.map((s) => (
                         <Select.Item key={s.id ?? s.stepOrder} value={s.id ?? String(s.stepOrder)}>
@@ -366,7 +372,7 @@ export function AlertRulesPanel({
                     onValueChange={(v) => setForm((f) => ({ ...f, offsetUnit: v as DelayUnit }))}
                   >
                     <Select.Trigger style={{ width: "100%" }} />
-                    <Select.Content>
+                    <Select.Content position="popper">
                       <Select.Item value="WORKING_DAYS">{t("admin.chainTemplates.workingDays")}</Select.Item>
                       <Select.Item value="WORKING_HOURS">{t("admin.chainTemplates.workingHours")}</Select.Item>
                     </Select.Content>
@@ -399,7 +405,7 @@ export function AlertRulesPanel({
                   onValueChange={(v) => setForm((f) => ({ ...f, alertTypeId: v }))}
                 >
                   <Select.Trigger style={{ width: "100%" }} />
-                  <Select.Content>
+                  <Select.Content position="popper">
                     {alertTypes.map((at) => (
                       <Select.Item key={at.id} value={at.id}>
                         {at.label}
@@ -419,7 +425,7 @@ export function AlertRulesPanel({
                     onValueChange={(v) => setForm((f) => ({ ...f, targetMode: v as AlertTargetMode }))}
                   >
                     <Select.Trigger style={{ width: "100%" }} />
-                    <Select.Content>
+                    <Select.Content position="popper">
                       <Select.Item value="CURRENT_RESPONSIBLE">
                         {t("admin.chainTemplates.alerts.targetModeCurrentResponsible")}
                       </Select.Item>
@@ -438,7 +444,7 @@ export function AlertRulesPanel({
                       onValueChange={(v) => setForm((f) => ({ ...f, targetRole: v as UserRole }))}
                     >
                       <Select.Trigger style={{ width: "100%" }} />
-                      <Select.Content>
+                      <Select.Content position="popper">
                         {ROLES.map((r) => (
                           <Select.Item key={r} value={r}>
                             {r}
@@ -459,7 +465,7 @@ export function AlertRulesPanel({
                   onValueChange={(v) => setForm((f) => ({ ...f, priorityScope: v === "all" ? undefined : v }))}
                 >
                   <Select.Trigger style={{ width: "100%" }} />
-                  <Select.Content>
+                  <Select.Content position="popper">
                     <Select.Item value="all">{t("admin.chainTemplates.alerts.priorityScopeAll")}</Select.Item>
                     <Select.Item value="URGENT_PLUS">
                       {t("admin.chainTemplates.alerts.priorityScopeUrgentPlus")}

@@ -26,6 +26,7 @@ import {
   getAllOrganizationTypes,
 } from "@/lib/api";
 import type { OrganizationType, OrganizationTypeRequest } from "@/lib/types";
+import { preventDialogDismissFromPortals } from "@/lib/dialog-portals";
 import { EmptyBlock, LoadingBlock, PageHeader, StatusAlert } from "@/components/ui/shared";
 
 const COLOR_OPTIONS = ["purple", "blue", "gray", "green", "orange"] as const;
@@ -316,7 +317,12 @@ export default function AdminOrgTypesPage() {
         </Card>
 
         <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
-          <Dialog.Content maxWidth="480px">
+          <Dialog.Content
+            maxWidth="480px"
+            onPointerDownOutside={preventDialogDismissFromPortals}
+            onInteractOutside={preventDialogDismissFromPortals}
+            onFocusOutside={preventDialogDismissFromPortals}
+          >
             <Dialog.Title>{t("admin.orgTypes.createTitle")}</Dialog.Title>
             <Dialog.Description size="2" color="gray" mb="4">
               {t("admin.orgTypes.createDescription")}

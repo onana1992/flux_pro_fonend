@@ -21,9 +21,10 @@ import {
   createUser,
   getOrganizationTree,
   getUser,
+  searchUsers,
   updateUser,
 } from "@/lib/api";
-import type { OrganizationTreeNode, UserRole } from "@/lib/types";
+import type { OrganizationTreeNode, User, UserRole } from "@/lib/types";
 import { LoadingBlock, PageHeader, StatusAlert } from "@/components/ui/shared";
 
 const ROLES: UserRole[] = [
@@ -38,6 +39,8 @@ const ROLES: UserRole[] = [
   "READER",
   "REGIONAL_DIRECTOR",
 ];
+
+const NONE_SUBSTITUTE = "__none__";
 
 function flattenOrgs(nodes: OrganizationTreeNode[]): OrganizationTreeNode[] {
   const result: OrganizationTreeNode[] = [];
@@ -57,6 +60,8 @@ export function UserFormPage({ userId }: { userId?: string }) {
   const isEdit = Boolean(userId);
 
   const [orgs, setOrgs] = useState<OrganizationTreeNode[]>([]);
+  const [substituteCandidates, setSubstituteCandidates] = useState<User[]>([]);
+  const [loadingSubstituteUsers, setLoadingSubstituteUsers] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,9 +77,15 @@ export function UserFormPage({ userId }: { userId?: string }) {
   const [jobTitle, setJobTitle] = useState("");
   const [active, setActive] = useState(true);
   const [organizationHead, setOrganizationHead] = useState(false);
+  const [substituteOrgId, setSubstituteOrgId] = useState("");
+  const [substituteId, setSubstituteId] = useState(NONE_SUBSTITUTE);
   const [temporaryPassword, setTemporaryPassword] = useState("");
 
   const flatOrgs = useMemo(() => flattenOrgs(orgs), [orgs]);
+  const substituteOptions = useMemo(
+    () => substituteCandidates.filter((u) => u.active && u.id !== userId),
+    [substituteCandidates, userId],
+  );
 
   useEffect(() => {
     async function load() {
@@ -94,6 +105,14 @@ export function UserFormPage({ userId }: { userId?: string }) {
           setJobTitle(user.jobTitle ?? "");
           setActive(user.active);
           setOrganizationHead(user.organizationHead);
+          if (user.substituteId) {
+            const substitute = await getUser(user.substituteId);
+            setSubstituteOrgId(substitute.organization.id);
+            setSubstituteId(substitute.id);
+          } else {
+            setSubstituteOrgId(user.organization.id);
+            setSubstituteId(NONE_SUBSTITUTE);
+          }
         } else if (tree.length > 0) {
           const first = flattenOrgs(tree)[0];
           if (first) setOrganizationId(first.id);
@@ -107,29 +126,75 @@ export function UserFormPage({ userId }: { userId?: string }) {
     void load();
   }, [userId, t]);
 
+  useEffect(() => {
+    if (!isEdit || !substituteOrgId) {
+      setSubstituteCandidates([]);
+      return;
+    }
+    let cancelled = false;
+    async function loadCandidates() {
+      setLoadingSubstituteUsers(true);
+      try {
+        const page = await searchUsers({ organizationId: substituteOrgId, size: 200 });
+        if (cancelled) return;
+        setSubstituteCandidates(page.content);
+        setSubstituteId((current) => {
+          if (current === NONE_SUBSTITUTE) return current;
+          return page.content.some((u) => u.id === current) ? current : NONE_SUBSTITUTE;
+        });
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof ApiError ? err.message : t("common.errorLoad"));
+        }
+      } finally {
+        if (!cancelled) setLoadingSubstituteUsers(false);
+      }
+    }
+    void loadCandidates();
+    return () => {
+      cancelled = true;
+    };
+  }, [isEdit, substituteOrgId, t]);
+
+  function handleSubstituteOrgChange(orgId: string) {
+    setSubstituteOrgId(orgId);
+    setSubstituteId(NONE_SUBSTITUTE);
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
-    const body = {
-      staffNumber,
-      email,
-      lastName,
-      firstName,
-      phone: phone || undefined,
-      role,
-      organizationId,
-      jobTitle: jobTitle || undefined,
-      active,
-      organizationHead,
-      ...(temporaryPassword.trim() ? { temporaryPassword: temporaryPassword.trim() } : {}),
-    };
     try {
       if (isEdit && userId) {
-        await updateUser(userId, body);
+        await updateUser(userId, {
+          staffNumber,
+          email,
+          lastName,
+          firstName,
+          phone: phone || undefined,
+          role,
+          organizationId,
+          jobTitle: jobTitle || undefined,
+          active,
+          organizationHead,
+          substituteId: substituteId === NONE_SUBSTITUTE ? null : substituteId,
+        });
         router.push("/admin/users");
       } else {
-        const result = await createUser(body);
+        const result = await createUser({
+          staffNumber,
+          email,
+          lastName,
+          firstName,
+          phone: phone || undefined,
+          role,
+          organizationId,
+          jobTitle: jobTitle || undefined,
+          active,
+          organizationHead,
+          ...(temporaryPassword.trim() ? { temporaryPassword: temporaryPassword.trim() } : {}),
+        });
         setTempPassword(result.temporaryPassword);
       }
     } catch (err) {
@@ -234,6 +299,61 @@ export function UserFormPage({ userId }: { userId?: string }) {
                   </Text>
                   <TextField.Root value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
                 </Box>
+                {isEdit && (
+                  <Box>
+                    <Text size="2" weight="medium" mb="2">
+                      {t("admin.users.substitute")}
+                    </Text>
+                    <Flex gap="3" wrap="wrap">
+                      <Box style={{ flex: 1, minWidth: 200 }}>
+                        <Text size="2" weight="medium" mb="1" color="gray">
+                          {t("admin.users.substituteOrganisation")}
+                        </Text>
+                        <Select.Root value={substituteOrgId} onValueChange={handleSubstituteOrgChange}>
+                          <Select.Trigger style={{ width: "100%" }} />
+                          <Select.Content>
+                            {flatOrgs.map((o) => (
+                              <Select.Item key={o.id} value={o.id}>
+                                {o.code} — {o.name}
+                              </Select.Item>
+                            ))}
+                          </Select.Content>
+                        </Select.Root>
+                      </Box>
+                      <Box style={{ flex: 1, minWidth: 200 }}>
+                        <Text size="2" weight="medium" mb="1" color="gray">
+                          {t("admin.users.substituteUser")}
+                        </Text>
+                        <Select.Root
+                          value={substituteId}
+                          onValueChange={setSubstituteId}
+                          disabled={!substituteOrgId || loadingSubstituteUsers}
+                        >
+                          <Select.Trigger
+                            style={{ width: "100%" }}
+                            placeholder={
+                              loadingSubstituteUsers
+                                ? t("common.loading")
+                                : t("admin.users.substituteNone")
+                            }
+                          />
+                          <Select.Content>
+                            <Select.Item value={NONE_SUBSTITUTE}>{t("admin.users.substituteNone")}</Select.Item>
+                            {substituteOptions.map((u) => (
+                              <Select.Item key={u.id} value={u.id}>
+                                {u.lastName} {u.firstName}
+                                {u.staffNumber ? ` (${u.staffNumber})` : ""}
+                              </Select.Item>
+                            ))}
+                          </Select.Content>
+                        </Select.Root>
+                      </Box>
+                    </Flex>
+                    <Text size="1" color="gray" mt="1" as="p">
+                      {t("admin.users.substituteHint")}
+                    </Text>
+                  </Box>
+                )}
                 {!isEdit && (
                   <Box>
                     <Text size="2" weight="medium" mb="1">

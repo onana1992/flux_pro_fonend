@@ -93,6 +93,8 @@ export interface User {
   jobTitle?: string;
   active: boolean;
   organizationHead: boolean;
+  substituteId?: string | null;
+  substituteDisplayName?: string | null;
   mustChangePassword: boolean;
   roles?: RoleSummary[];
 }
@@ -365,6 +367,7 @@ export interface PassageStep {
   returnReason?: string | null;
   suspendedAt?: string | null;
   resumedAt?: string | null;
+  ccUsers?: { id: string; firstName: string; lastName: string; email: string }[];
 }
 
 export interface CurrentHolder {
@@ -401,6 +404,7 @@ export interface PassageCandidate {
 export interface ChainStepAssignmentRequest {
   chainStepTemplateId: string;
   responsibleUserId?: string | null;
+  ccUserIds?: string[];
 }
 
 export interface ChainInitializeRequest {
@@ -411,12 +415,14 @@ export interface ChainInitializeRequest {
 export interface PassageNextAssignmentRequest {
   passageId: string;
   responsibleUserId: string;
+  ccUserIds?: string[];
 }
 
 export interface PassageTransmitRequest {
   comment?: string;
   nextResponsibleUserId?: string;
   nextAssignments?: PassageNextAssignmentRequest[];
+  nextCcUserIds?: string[];
 }
 
 export interface PassageReturnRequest {
@@ -449,6 +455,45 @@ export interface AlertTypeRequest {
   description?: string;
   emailTemplateCode?: string;
   active: boolean;
+}
+
+export interface BusinessCalendarDay {
+  id: string;
+  calendarDate: string;
+  label: string;
+  countryCode: string;
+}
+
+export interface BusinessCalendarDayRequest {
+  calendarDate: string;
+  label: string;
+  countryCode?: string;
+}
+
+export interface AlertDigestRecipientRolesResponse {
+  roles: UserRole[];
+}
+
+export interface TenantConfig {
+  tenantName: string;
+  productName: string;
+  timezone: string;
+  countryCode: string;
+  referencePrefix: string;
+  badge: string;
+  fromAddress: string;
+  emailRedirectTo?: string | null;
+}
+
+export interface TenantSettingsRequest {
+  tenantName: string;
+  productName: string;
+  timezone: string;
+  countryCode: string;
+  referencePrefix: string;
+  badge: string;
+  fromAddress: string;
+  emailRedirectTo?: string;
 }
 
 export interface AlertRule {

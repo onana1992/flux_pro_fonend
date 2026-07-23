@@ -80,7 +80,7 @@ export function AlertRulesPanel({
         getActiveAlertTypes(),
       ]);
       setRules(ruleList);
-      setAlertTypes(types);
+      setAlertTypes(types.filter((at) => at.code !== "PASSAGE_ARRIVAL" && at.code !== "PASSAGE_CC"));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("common.errorLoad"));
     } finally {

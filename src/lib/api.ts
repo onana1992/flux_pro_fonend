@@ -40,6 +40,11 @@ import type {
   Permission,
   AlertType,
   AlertTypeRequest,
+  BusinessCalendarDay,
+  BusinessCalendarDayRequest,
+  AlertDigestRecipientRolesResponse,
+  TenantConfig,
+  TenantSettingsRequest,
   AlertRule,
   AlertRuleRequest,
   AlertResponse,
@@ -195,7 +200,11 @@ export async function apiFetch<T>(
   return JSON.parse(text) as T;
 }
 
-export async function login(email: string, password: string): Promise<TokenResponse> {
+export async function login(
+  email: string,
+  password: string,
+  remember = false,
+): Promise<TokenResponse> {
   const res = await fetchWithTimeout(`${API_URL}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -205,7 +214,7 @@ export async function login(email: string, password: string): Promise<TokenRespo
     throw new ApiError(await parseError(res), res.status);
   }
   const data = (await res.json()) as TokenResponse;
-  saveAuth(data);
+  saveAuth(data, { remember, email });
   return data;
 }
 
@@ -361,6 +370,7 @@ export async function createUser(body: {
   jobTitle?: string;
   active: boolean;
   organizationHead?: boolean;
+  substituteId?: string | null;
   temporaryPassword?: string;
 }): Promise<CreateUserResult> {
   return apiFetch<CreateUserResult>("/api/users", {
@@ -382,6 +392,7 @@ export async function updateUser(
     jobTitle?: string;
     active: boolean;
     organizationHead?: boolean;
+    substituteId?: string | null;
   },
 ): Promise<User> {
   return apiFetch<User>(`/api/users/${id}`, {
@@ -895,6 +906,88 @@ export async function deactivateAlertType(id: string): Promise<AlertType> {
 
 export async function deleteAlertType(id: string): Promise<void> {
   return apiFetch<void>(`/api/admin/alert-types/${id}`, { method: "DELETE" });
+}
+
+export async function listBusinessCalendarDays(params?: {
+  year?: number;
+  countryCode?: string;
+}): Promise<BusinessCalendarDay[]> {
+  const q = new URLSearchParams();
+  if (params?.year != null) q.set("year", String(params.year));
+  if (params?.countryCode) q.set("countryCode", params.countryCode);
+  const suffix = q.toString() ? `?${q}` : "";
+  return apiFetch<BusinessCalendarDay[]>(`/api/admin/business-calendar${suffix}`);
+}
+
+export async function createBusinessCalendarDay(
+  body: BusinessCalendarDayRequest,
+): Promise<BusinessCalendarDay> {
+  return apiFetch<BusinessCalendarDay>("/api/admin/business-calendar", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateBusinessCalendarDay(
+  id: string,
+  body: BusinessCalendarDayRequest,
+): Promise<BusinessCalendarDay> {
+  return apiFetch<BusinessCalendarDay>(`/api/admin/business-calendar/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteBusinessCalendarDay(id: string): Promise<void> {
+  return apiFetch<void>(`/api/admin/business-calendar/${id}`, { method: "DELETE" });
+}
+
+export async function getDigestRecipientRoles(): Promise<AlertDigestRecipientRolesResponse> {
+  return apiFetch<AlertDigestRecipientRolesResponse>("/api/admin/alert-digest/recipient-roles");
+}
+
+export async function replaceDigestRecipientRoles(
+  roles: UserRole[],
+): Promise<AlertDigestRecipientRolesResponse> {
+  return apiFetch<AlertDigestRecipientRolesResponse>("/api/admin/alert-digest/recipient-roles", {
+    method: "PUT",
+    body: JSON.stringify({ roles }),
+  });
+}
+
+export async function addDigestRecipientRole(
+  role: UserRole,
+): Promise<AlertDigestRecipientRolesResponse> {
+  return apiFetch<AlertDigestRecipientRolesResponse>(
+    `/api/admin/alert-digest/recipient-roles/${role}`,
+    { method: "POST" },
+  );
+}
+
+export async function removeDigestRecipientRole(
+  role: UserRole,
+): Promise<AlertDigestRecipientRolesResponse> {
+  return apiFetch<AlertDigestRecipientRolesResponse>(
+    `/api/admin/alert-digest/recipient-roles/${role}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function getPublicTenantConfig(): Promise<TenantConfig> {
+  return apiFetch<TenantConfig>("/api/public/tenant-config");
+}
+
+export async function getTenantSettings(): Promise<TenantConfig> {
+  return apiFetch<TenantConfig>("/api/admin/tenant-settings");
+}
+
+export async function updateTenantSettings(
+  body: TenantSettingsRequest,
+): Promise<TenantConfig> {
+  return apiFetch<TenantConfig>("/api/admin/tenant-settings", {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
 }
 
 export async function listAlertRules(chainTemplateId: string): Promise<AlertRule[]> {

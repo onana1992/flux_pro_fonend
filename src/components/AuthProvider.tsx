@@ -26,7 +26,7 @@ interface AuthContextValue {
   isAdmin: boolean;
   /** Vrai juste après une expiration de session détectée (401 non récupérable). */
   sessionExpired: boolean;
-  login: (email: string, password: string) => Promise<UserProfile>;
+  login: (email: string, password: string, remember?: boolean) => Promise<UserProfile>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   /** Met à jour le profil en mémoire après un changement de mot de passe (tokens déjà sauvegardés). */
@@ -82,8 +82,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const data = await apiLogin(email, password);
+  const login = useCallback(async (email: string, password: string, remember = false) => {
+    const data = await apiLogin(email, password, remember);
     setUser(data.user);
     setSessionExpired(false);
     return data.user;

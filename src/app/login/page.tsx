@@ -8,16 +8,19 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/components/AuthProvider";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useThemeAppearance } from "@/components/ThemeToggle";
+import { useTenant } from "@/components/TenantProvider";
 import { ApiError } from "@/lib/api";
+import { getRememberedEmail, hasRememberedLogin } from "@/lib/auth-storage";
 
 export default function LoginPage() {
   const { t } = useTranslation();
   const { login, user, sessionExpired, clearSessionExpired } = useAuth();
+  const { config: tenant } = useTenant();
   const { appearance, toggleAppearance } = useThemeAppearance();
   const router = useRouter();
   const dark = appearance === "dark";
-  const [email, setEmail] = useState("e.fotso@mintp.cm");
-  const [password, setPassword] = useState("Mintp@2025");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +39,14 @@ export default function LoginPage() {
     if (user) router.replace("/dashboard");
   }, [user, router]);
 
+  useEffect(() => {
+    const remembered = getRememberedEmail();
+    if (remembered && hasRememberedLogin()) {
+      setEmail(remembered);
+      setRemember(true);
+    }
+  }, []);
+
   // Capture le flag dans un état local dès son apparition, puis le réinitialise
   // dans le contexte pour qu'il ne réapparaisse pas lors d'une déconnexion normale.
   useEffect(() => {
@@ -53,7 +64,7 @@ export default function LoginPage() {
     setShowSessionExpired(false);
     setSubmitting(true);
     try {
-      const profile = await login(email, password);
+      const profile = await login(email, password, remember);
       router.replace(profile.mustChangePassword ? "/change-password" : "/dashboard");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("common.connectionFailed"));
@@ -112,7 +123,7 @@ export default function LoginPage() {
             </h1>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-blue-100/90">{t("login.heroSubtitle")}</p>
             <p className="mt-8 inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-medium text-blue-50">
-              {t("login.clientBadge")}
+              {tenant.badge || t("login.clientBadge")}
             </p>
           </div>
         </aside>

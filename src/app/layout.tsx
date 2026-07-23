@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/AuthProvider";
 import { I18nProvider } from "@/components/I18nProvider";
 import { RadixProvider } from "@/components/RadixProvider";
+import { TenantProvider } from "@/components/TenantProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FluxPro — MINTP",
-  description: "Suivi de dossiers par chaîne hiérarchique — Ministère des Travaux Publics",
+  title: "FluxPro",
+  description: "Suivi de dossiers par chaîne hiérarchique",
 };
 
 export default function RootLayout({
@@ -30,7 +31,9 @@ export default function RootLayout({
       <body>
         <I18nProvider>
           <RadixProvider>
-            <AuthProvider>{children}</AuthProvider>
+            <TenantProvider>
+              <AuthProvider>{children}</AuthProvider>
+            </TenantProvider>
           </RadixProvider>
         </I18nProvider>
       </body>

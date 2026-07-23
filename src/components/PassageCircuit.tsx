@@ -7,6 +7,7 @@ import {
   Box,
   Button,
   Card,
+  Checkbox,
   Dialog,
   Flex,
   Grid,
@@ -1173,6 +1174,19 @@ function AssignmentStepCard({
   noOrgsLabel,
   requiredLabel,
   optionalLabel,
+  ccUserIds = [],
+  ccOrgCode = "",
+  ccPendingUserId = "",
+  ccCandidates = [],
+  onCcOrgChange,
+  onCcPendingUserChange,
+  onAddCc,
+  onRemoveCc,
+  ccTitle,
+  ccHint,
+  ccAddLabel,
+  ccRemoveLabel,
+  ccOptionalLabel,
 }: {
   step: ChainStepTemplate;
   candidates: PassageCandidate[];
@@ -1191,12 +1205,37 @@ function AssignmentStepCard({
   noOrgsLabel: string;
   requiredLabel?: string;
   optionalLabel?: string;
+  ccUserIds?: string[];
+  ccOrgCode?: string;
+  ccPendingUserId?: string;
+  ccCandidates?: PassageCandidate[];
+  onCcOrgChange?: (orgCode: string) => void;
+  onCcPendingUserChange?: (userId: string) => void;
+  onAddCc?: () => void;
+  onRemoveCc?: (userId: string) => void;
+  ccTitle?: string;
+  ccHint?: string;
+  ccAddLabel?: string;
+  ccRemoveLabel?: string;
+  ccOptionalLabel?: string;
 }) {
   const stepId = step.id ?? "";
   const orgsForRole = orgsWithCandidates(organizations, candidates);
   const filteredCandidates = organizationCode
     ? candidates.filter((c) => c.organizationCode === organizationCode)
     : [];
+  const ccPool = ccCandidates.length > 0 ? ccCandidates : candidates;
+  const ccOrgs = orgsWithCandidates(organizations, ccPool);
+  const ccUsersInOrg = ccOrgCode
+    ? ccPool.filter((c) => c.organizationCode === ccOrgCode && !ccUserIds.includes(c.id) && c.id !== value)
+    : [];
+  const [ccEnabled, setCcEnabled] = useState(false);
+
+  function clearCcSelection() {
+    for (const id of ccUserIds) onRemoveCc?.(id);
+    onCcOrgChange?.("");
+    onCcPendingUserChange?.("");
+  }
 
   return (
     <Box
@@ -1248,11 +1287,7 @@ function AssignmentStepCard({
                       </Badge>
                       <Text
                         size="2"
-                        style={{
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
+                        style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                       >
                         {selected.name}
                       </Text>
@@ -1261,19 +1296,12 @@ function AssignmentStepCard({
                 })()
               : null}
           </Select.Trigger>
-          <Select.Content
-            position="popper"
-            style={{ maxHeight: 360, minWidth: "var(--radix-select-trigger-width)" }}
-          >
-            <Select.Item value="none" textValue="—">
-              <Text size="2" color="gray">
-                —
-              </Text>
-            </Select.Item>
+          <Select.Content position="popper" style={{ maxHeight: 360 }}>
+            <Select.Item value="none">—</Select.Item>
             {orgsForRole.map((org, index) => {
+              const isRoot = org.depth === 0;
               const prevDepth = index > 0 ? orgsForRole[index - 1].depth : 0;
               const showBranch = org.depth > 0;
-              const isRoot = org.depth === 0;
               return (
                 <Select.Item
                   key={org.code}
@@ -1376,6 +1404,108 @@ function AssignmentStepCard({
           <Text size="1" color="orange">
             {noCandidatesInOrgLabel}
           </Text>
+        )}
+
+        {onCcOrgChange && onAddCc && onRemoveCc && (
+          <Box mt="1" pt="2" style={{ borderTop: "1px dashed var(--gray-a5)" }}>
+            <Text as="label" size="2">
+              <Flex gap="2" align="center" wrap="wrap">
+                <Checkbox
+                  checked={ccEnabled}
+                  disabled={disabled || !stepId}
+                  onCheckedChange={(v) => {
+                    const enabled = v === true;
+                    setCcEnabled(enabled);
+                    if (!enabled) clearCcSelection();
+                  }}
+                />
+                <Text size="2" weight="medium">
+                  {ccTitle}
+                </Text>
+                <Badge size="1" variant="soft" color="gray">
+                  {ccOptionalLabel}
+                </Badge>
+              </Flex>
+            </Text>
+            {ccEnabled && (
+              <Flex direction="column" gap="2" mt="2">
+                <Text size="1" color="gray">
+                  {ccHint}
+                </Text>
+                <Select.Root
+                  value={ccOrgCode || "none"}
+                  onValueChange={(v) => onCcOrgChange(v === "none" ? "" : v)}
+                  disabled={disabled || !stepId}
+                >
+                  <Select.Trigger placeholder={selectOrganizationLabel} style={{ width: "100%" }} />
+                  <Select.Content position="popper" style={{ maxHeight: 360 }}>
+                    <Select.Item value="none">—</Select.Item>
+                    {ccOrgs.map((org) => (
+                      <Select.Item key={org.code} value={org.code} textValue={`${org.code} ${org.name}`}>
+                        {org.code} — {org.name}
+                      </Select.Item>
+                    ))}
+                  </Select.Content>
+                </Select.Root>
+                <Flex gap="2" wrap="wrap" align="end">
+                  <Box style={{ flex: 1, minWidth: 160 }}>
+                    <Select.Root
+                      value={ccPendingUserId || "none"}
+                      onValueChange={(v) => onCcPendingUserChange?.(v === "none" ? "" : v)}
+                      disabled={disabled || !ccOrgCode}
+                    >
+                      <Select.Trigger
+                        placeholder={ccOrgCode ? selectUserLabel : selectOrgFirstLabel}
+                        style={{ width: "100%" }}
+                      />
+                      <Select.Content>
+                        <Select.Item value="none">—</Select.Item>
+                        {ccUsersInOrg.map((c) => (
+                          <Select.Item key={c.id} value={c.id}>
+                            {c.firstName} {c.lastName}
+                            <Text size="1" color="gray">
+                              {" "}
+                              — {c.role}
+                            </Text>
+                          </Select.Item>
+                        ))}
+                      </Select.Content>
+                    </Select.Root>
+                  </Box>
+                  <Button type="button" variant="soft" disabled={disabled || !ccPendingUserId} onClick={onAddCc}>
+                    {ccAddLabel}
+                  </Button>
+                </Flex>
+                {ccUserIds.length > 0 && (
+                  <Flex gap="2" wrap="wrap">
+                    {ccUserIds.map((id) => {
+                      const u = ccPool.find((c) => c.id === id);
+                      const label = u ? `${u.firstName} ${u.lastName}` : id.slice(0, 8);
+                      return (
+                        <Badge key={id} variant="soft" color="gray">
+                          {label}{" "}
+                          <button
+                            type="button"
+                            onClick={() => onRemoveCc(id)}
+                            style={{
+                              marginLeft: 4,
+                              border: "none",
+                              background: "transparent",
+                              cursor: "pointer",
+                              color: "inherit",
+                            }}
+                            aria-label={ccRemoveLabel}
+                          >
+                            ×
+                          </button>
+                        </Badge>
+                      );
+                    })}
+                  </Flex>
+                )}
+              </Flex>
+            )}
+          </Box>
         )}
       </Flex>
     </Box>
@@ -1815,6 +1945,9 @@ export function PassageCircuit({
   const [selectedTemplate, setSelectedTemplate] = useState<ChainTemplateDetail | null>(null);
   const [assignments, setAssignments] = useState<Record<string, string>>({});
   const [orgByStep, setOrgByStep] = useState<Record<string, string>>({});
+  const [ccByStep, setCcByStep] = useState<Record<string, string[]>>({});
+  const [ccOrgByStep, setCcOrgByStep] = useState<Record<string, string>>({});
+  const [ccPendingByStep, setCcPendingByStep] = useState<Record<string, string>>({});
   const [orgOptions, setOrgOptions] = useState<{ code: string; name: string; depth: number }[]>([]);
   const [candidatesByRole, setCandidatesByRole] = useState<Partial<Record<UserRole, PassageCandidate[]>>>({});
   const [loadingTemplate, setLoadingTemplate] = useState(false);
@@ -2009,6 +2142,9 @@ export function PassageCircuit({
     setSelectedTemplate(null);
     setAssignments({});
     setOrgByStep({});
+    setCcByStep({});
+    setCcOrgByStep({});
+    setCcPendingByStep({});
     setCandidatesByRole({});
     if (!templateId) return;
 
@@ -2112,6 +2248,7 @@ export function PassageCircuit({
           .map((s) => ({
             chainStepTemplateId: s.id!,
             responsibleUserId: assignments[s.id!],
+            ccUserIds: (ccByStep[s.id!] ?? []).length > 0 ? ccByStep[s.id!] : undefined,
           })),
       }),
     );
@@ -2284,7 +2421,14 @@ export function PassageCircuit({
                             {t("files.circuit.parallelStage")}
                           </Text>
                         )}
-                        {stage.steps.map((step) => (
+                        {stage.steps.map((step) => {
+                          const allCandidates = Object.values(candidatesByRole)
+                            .flat()
+                            .filter((c): c is PassageCandidate => Boolean(c));
+                          const uniqueCcCandidates = Array.from(
+                            new Map(allCandidates.map((c) => [c.id, c])).values(),
+                          );
+                          return (
                           <AssignmentStepCard
                             key={step.id || `${step.stepOrder}-${step.label}`}
                             step={step}
@@ -2322,8 +2466,53 @@ export function PassageCircuit({
                             noOrgsLabel={t("files.circuit.noOrganizations")}
                             requiredLabel={t("files.circuit.firstStageRequired")}
                             optionalLabel={t("files.circuit.optionalLater")}
+                            ccUserIds={step.id ? ccByStep[step.id] ?? [] : []}
+                            ccOrgCode={step.id ? ccOrgByStep[step.id] ?? "" : ""}
+                            ccPendingUserId={step.id ? ccPendingByStep[step.id] ?? "" : ""}
+                            ccCandidates={uniqueCcCandidates}
+                            onCcOrgChange={(orgCode) => {
+                              if (!step.id) return;
+                              setCcOrgByStep((prev) => ({ ...prev, [step.id!]: orgCode }));
+                              setCcPendingByStep((prev) => {
+                                const next = { ...prev };
+                                delete next[step.id!];
+                                return next;
+                              });
+                            }}
+                            onCcPendingUserChange={(userId) => {
+                              if (!step.id) return;
+                              setCcPendingByStep((prev) => ({ ...prev, [step.id!]: userId }));
+                            }}
+                            onAddCc={() => {
+                              if (!step.id) return;
+                              const pending = ccPendingByStep[step.id];
+                              if (!pending) return;
+                              setCcByStep((prev) => {
+                                const current = prev[step.id!] ?? [];
+                                if (current.includes(pending)) return prev;
+                                return { ...prev, [step.id!]: [...current, pending] };
+                              });
+                              setCcPendingByStep((prev) => {
+                                const next = { ...prev };
+                                delete next[step.id!];
+                                return next;
+                              });
+                            }}
+                            onRemoveCc={(userId) => {
+                              if (!step.id) return;
+                              setCcByStep((prev) => ({
+                                ...prev,
+                                [step.id!]: (prev[step.id!] ?? []).filter((id) => id !== userId),
+                              }));
+                            }}
+                            ccTitle={t("files.circuit.ccTitle")}
+                            ccHint={t("files.circuit.ccHint")}
+                            ccAddLabel={t("files.circuit.ccAdd")}
+                            ccRemoveLabel={t("files.circuit.ccRemove")}
+                            ccOptionalLabel={t("files.circuit.ccOptional")}
                           />
-                        ))}
+                          );
+                        })}
                       </Flex>
                     ))}
                   </Flex>

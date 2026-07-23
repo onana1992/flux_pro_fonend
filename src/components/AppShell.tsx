@@ -13,8 +13,8 @@ import {
   ComponentInstanceIcon,
   DashboardIcon,
   FileIcon,
+  GearIcon,
   HamburgerMenuIcon,
-  MagnifyingGlassIcon,
   Share1Icon,
   MoonIcon,
   PersonIcon,
@@ -27,15 +27,17 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "./AuthProvider";
 import { canAccessAdmin, canReadUsers, canSeePermission, isSuperAdmin } from "@/lib/auth-storage";
+import { HeaderSearch } from "./HeaderSearch";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { NotificationBell } from "./NotificationBell";
 import { TestClockBar } from "./TestClockBar";
 import { useThemeAppearance } from "./ThemeToggle";
 import { UserProfileMenu } from "./UserProfileMenu";
+import { useTenant } from "./TenantProvider";
 
 interface NavItem {
   href: string;
@@ -93,6 +95,12 @@ const REFERENTIALS_SECTION: NavSection = {
       labelKey: "nav.alertTypes",
       icon: <BellIcon />,
       permission: "ALERT_TYPES:READ",
+    },
+    {
+      href: "/admin/settings",
+      labelKey: "nav.settings",
+      icon: <GearIcon />,
+      permission: "BUSINESS_CALENDAR:READ",
     },
   ],
 };
@@ -212,10 +220,10 @@ function SidebarNav({
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const { user, logout, isAdmin } = useAuth();
+  const { config: tenant } = useTenant();
   const { appearance, toggleAppearance } = useThemeAppearance();
   const pathname = usePathname();
   const router = useRouter();
-  const searchRef = useRef<HTMLInputElement>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
@@ -252,17 +260,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setMobileOpen(false);
   }, [pathname]);
 
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
-
   async function handleLogout() {
     await logout();
     router.push("/login");
@@ -294,7 +291,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               className="h-full w-full object-contain"
             />
           </div>
-          {!isCollapsed && <span className="sidebar-brand__title">{t("common.brandTitle")}</span>}
+          {!isCollapsed && (
+            <span className="sidebar-brand__title">{tenant.productName || t("common.brandTitle")}</span>
+          )}
         </Link>
 
         <SidebarNav
@@ -398,53 +397,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <HamburgerMenuIcon width={20} height={20} />
             </button>
 
-            <Flex
-              align="center"
-              gap="2"
-              px="3"
-              display={{ initial: "none", sm: "flex" }}
-              style={{
-                flex: 1,
-                maxWidth: 430,
-                height: 44,
-                border: "1px solid var(--gray-a5)",
-                borderRadius: 8,
-                background: "var(--gray-2)",
-              }}
-            >
-              <MagnifyingGlassIcon width={18} height={18} color="var(--gray-9)" />
-              <Box asChild style={{ flex: 1, minWidth: 0 }}>
-                <input
-                  ref={searchRef}
-                  type="search"
-                  placeholder={t("header.searchPlaceholder")}
-                  aria-label={t("common.search")}
-                  style={{
-                    width: "100%",
-                    border: "none",
-                    outline: "none",
-                    background: "transparent",
-                    fontSize: 14,
-                    color: "var(--gray-12)",
-                  }}
-                />
-              </Box>
-              <Text
-                size="1"
-                color="gray"
-                style={{
-                  flexShrink: 0,
-                  padding: "2px 6px",
-                  border: "1px solid var(--gray-a5)",
-                  borderRadius: 4,
-                  background: "var(--color-background)",
-                  fontFamily: "var(--font-geist-mono)",
-                  lineHeight: 1.4,
-                }}
-              >
-                ⌘ K
-              </Text>
-            </Flex>
+            <HeaderSearch user={user} />
           </Flex>
 
           <Flex align="center" gap="2" style={{ flexShrink: 0, flexWrap: "nowrap" }}>

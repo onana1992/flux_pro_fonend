@@ -3,36 +3,88 @@ import type { UserProfile } from "./types";
 const ACCESS_KEY = "fluxpro_access_token";
 const REFRESH_KEY = "fluxpro_refresh_token";
 const USER_KEY = "fluxpro_user";
+/** Préférence « Remember me » (toujours en localStorage pour survivre aux rechargements). */
+const PERSIST_KEY = "fluxpro_auth_persist";
+const REMEMBERED_EMAIL_KEY = "fluxpro_remembered_email";
 
-export function saveAuth(data: {
-  accessToken: string;
-  refreshToken: string;
-  user: UserProfile;
-}) {
-  localStorage.setItem(ACCESS_KEY, data.accessToken);
-  localStorage.setItem(REFRESH_KEY, data.refreshToken);
-  localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+function isBrowser(): boolean {
+  return typeof window !== "undefined";
+}
+
+/** True si la session courante (ou la dernière préférence) est persistante. */
+export function isAuthPersistent(): boolean {
+  if (!isBrowser()) return false;
+  if (sessionStorage.getItem(ACCESS_KEY)) return false;
+  if (localStorage.getItem(ACCESS_KEY)) return true;
+  return localStorage.getItem(PERSIST_KEY) === "1";
+}
+
+function authStore(remember?: boolean): Storage {
+  const persistent = remember ?? isAuthPersistent();
+  return persistent ? localStorage : sessionStorage;
+}
+
+function clearStore(store: Storage) {
+  store.removeItem(ACCESS_KEY);
+  store.removeItem(REFRESH_KEY);
+  store.removeItem(USER_KEY);
+}
+
+/**
+ * Persiste la session.
+ * - `remember: true` → localStorage (survit à la fermeture du navigateur)
+ * - `remember: false` → sessionStorage (effacé à la fermeture de l’onglet)
+ * - omis → conserve le mode de stockage actuel
+ */
+export function saveAuth(
+  data: {
+    accessToken: string;
+    refreshToken: string;
+    user: UserProfile;
+  },
+  options?: { remember?: boolean; email?: string },
+) {
+  const remember = options?.remember ?? isAuthPersistent();
+  const store = authStore(remember);
+  const other = remember ? sessionStorage : localStorage;
+
+  clearStore(other);
+  store.setItem(ACCESS_KEY, data.accessToken);
+  store.setItem(REFRESH_KEY, data.refreshToken);
+  store.setItem(USER_KEY, JSON.stringify(data.user));
+
+  if (remember) {
+    localStorage.setItem(PERSIST_KEY, "1");
+    if (options?.email) {
+      localStorage.setItem(REMEMBERED_EMAIL_KEY, options.email.trim().toLowerCase());
+    }
+  } else {
+    localStorage.removeItem(PERSIST_KEY);
+    localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+  }
 }
 
 export function clearAuth() {
-  localStorage.removeItem(ACCESS_KEY);
-  localStorage.removeItem(REFRESH_KEY);
-  localStorage.removeItem(USER_KEY);
+  if (!isBrowser()) return;
+  clearStore(localStorage);
+  clearStore(sessionStorage);
+  // Conserve l’email mémorisé si « Remember me » était actif (préremplissage login).
+  // PERSIST_KEY / email sont nettoyés uniquement au login sans remember.
 }
 
 export function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(ACCESS_KEY);
+  if (!isBrowser()) return null;
+  return sessionStorage.getItem(ACCESS_KEY) ?? localStorage.getItem(ACCESS_KEY);
 }
 
 export function getRefreshToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(REFRESH_KEY);
+  if (!isBrowser()) return null;
+  return sessionStorage.getItem(REFRESH_KEY) ?? localStorage.getItem(REFRESH_KEY);
 }
 
 export function getStoredUser(): UserProfile | null {
-  if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem(USER_KEY);
+  if (!isBrowser()) return null;
+  const raw = sessionStorage.getItem(USER_KEY) ?? localStorage.getItem(USER_KEY);
   if (!raw) return null;
   try {
     const user = JSON.parse(raw) as UserProfile;
@@ -44,6 +96,16 @@ export function getStoredUser(): UserProfile | null {
   } catch {
     return null;
   }
+}
+
+export function getRememberedEmail(): string | null {
+  if (!isBrowser()) return null;
+  return localStorage.getItem(REMEMBERED_EMAIL_KEY);
+}
+
+export function hasRememberedLogin(): boolean {
+  if (!isBrowser()) return false;
+  return localStorage.getItem(PERSIST_KEY) === "1" && Boolean(getRememberedEmail());
 }
 
 export function hasPermission(user: UserProfile | null | undefined, permission: string): boolean {
